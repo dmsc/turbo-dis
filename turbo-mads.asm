@@ -503,7 +503,7 @@ EXP10       = $DDCC
 LOG         = $DECD
 LOG10       = $DED1
 ;
-; BASIC FLOARING POINT TABLES
+; BASIC FLOATING POINT TABLES
 ;
 P10COF      = $DE4D
 SQR10       = $DF66
@@ -555,13 +555,13 @@ L0086       = $0086
 L0087       = $0087
 L0088       = $0088
 L0089       = $0089
-STMCUR       = $008A
+STMCUR      = $008A
 L008C       = $008C
 L008D       = $008D
 L008E       = $008E
 L008F       = $008F
 TOPRSTK     = $0090
-MEOLFLG       = $0092
+MEOLFLG     = $0092
 L0094       = $0094
 L0095       = $0095
 L0096       = $0096
@@ -573,7 +573,7 @@ L009B       = $009B
 L009C       = $009C
 L009D       = $009D
 L009E       = $009E
-LLNGTH       = $009F
+LLNGTH      = $009F
 L00A0       = $00A0
 L00A1       = $00A1
 L00A2       = $00A2
@@ -581,13 +581,13 @@ L00A3       = $00A3
 L00A4       = $00A4
 L00A5       = $00A5
 L00A6       = $00A6
-NXTSTD       = $00A7
-STINDEX      = $00A8
-OPSTKX       = $00A9
-ARSLVL       = $00AA
-EXSVOP       = $00AB
-TVSCIX       = $00AC
-EXSVPR       = $00AC
+NXTSTD      = $00A7
+STINDEX     = $00A8
+OPSTKX      = $00A9
+ARSLVL      = $00AA
+EXSVOP      = $00AB
+TVSCIX      = $00AC
+EXSVPR      = $00AC
 L00AD       = $00AD
 L00AE       = $00AE
 L00AF       = $00AF
@@ -674,7 +674,7 @@ IRQ_VEC     = $FFFE
 TBXL_LOW_ADDRESS = $2080
 ; The character map of the loader - used to avoid screen flicker while loading
 RAM_CHMAP   = $5C00
-; The loader address - will be overwriten by the main code
+; The loader address - will be overwritten by the main code
 TBXL_LOADER = $2100
 ; The loader for RAM under ROM parts and initialization address
 TBXL_ROMLOADER = $6000
@@ -6514,7 +6514,7 @@ ERR_14      lda #$0E
             jmp ERROR
 
 
-            ; Exit after partsing "THEN", skip to parse next statement
+            ; Exit after parsing "THEN", skip to parse next statement
 LEIF        ldx #$FF
             txs
             lda L0094
@@ -6522,7 +6522,7 @@ LEIF        ldx #$FF
             sta VARSTK0,Y
             jmp LE6D1
 
-            ; Exit after partsing "REM" or "DATA", skip to parse next statement
+            ; Exit after parsing "REM" or "DATA", skip to parse next statement
 LEREM       ldx #$FF
             txs
             ldy #$04
@@ -7111,7 +7111,7 @@ LNFUSR      .byte CUSR,_FNLPRN,_FPARN,CRPRN,SRTN
             ; Parameter for a numeric function (1 argument)
             ; FPAR1 : NFLPRN EXPR ')'
 LFPAR1      .byte _FNLPRN,_EXPR,CRPRN,SRTN
-            ; Stringn parameter for a function (1 argument)
+            ; String parameter for a function (1 argument)
             ; SPAR1 : NFLPRN SEXPR ')'
 LSTPAR1     .byte _FNLPRN,_SEXPR,CRPRN,SRTN
             ; String comparison expression
@@ -7155,13 +7155,13 @@ LSLOCATE    .byte _NUM2,CCOM,_SNVARN,SRTN
             ; STEXT : NUM2 ',' PEXPR EOS
 LSTEXT      .byte _NUM2,CCOM,_PEXPR,_EOS,SRTN
             ; STATUS expression
-            ; SSTATUS : IOEXP PSEP [fallthrough] NVARN EOS
+            ; SSTATUS : IOEXP PSEP [fall through] NVARN EOS
 LSSTATUS    .byte _IOEXP,_PSEP
             ; A numeric variable name at end of statement
             ; SNVARN : NVARN EOS
 LSNVARN     .byte _NVARN,_EOS,SRTN
             ; RESTORE / EXIT expression (optional label or line number)
-            ; : EOS | [fallthrough] SNUM1 | '#' ??
+            ; : EOS | [fall through] SNUM1 | '#' ??
 LSRESTORE   .byte _EOS,SOR
             ; TRAP expression: Line number or label name
             ; : SNUM1 | '#' SEXEC
@@ -7169,7 +7169,7 @@ LSTRAP      .byte _SNUM1,SOR,CPND,_SEXEC,SRTN
             ; INPUT / GET / %GET expression
             ; BUG: this should only be used for INPUT, as currently you can do
             ;      ' GET "Hello";A$ ' that overwrites variable memory!
-            ; SINPUT : IOSOPT [fallthrough]
+            ; SINPUT : IOSOPT [fall through]
 LSINPUT     .byte _IOSOPT
             ; READ expression, one ore more variable names
             ; SREAD : NSVARN NSVARX EOS
@@ -7178,7 +7178,7 @@ LSREAD      .byte _NSVARN,_NSVARX,_EOS,SRTN
             ; EOS : ':' | EOL
 LEOS        .byte CEOS,SOR,CCR,SRTN
             ; PRINT statement
-            ; SPRINT : IOEXP EOS | IOOPT [fallthrough] .......
+            ; SPRINT : IOEXP EOS | IOOPT [fall through] .......
 LSPRINT     .byte _IOEXP,_EOS,SOR,_IOOPT
             ; LPRINT statement
             ; SLPRINT : PRINT1 EOS
@@ -7196,10 +7196,10 @@ LNSVARP     .byte _NSVARN,_NSVARX,SOR,SRTN
             ; NSVARX : ',' NSVARP | <none>
 LNSVARX     .byte CCOM,_NSVARP,SOR,SRTN
             ; XIO statement
-            ; SXIO : EXPR ',' [fallthrough] IOEXP ',' NUM2 ',' SEXPR EOS
+            ; SXIO : EXPR ',' [fall through] IOEXP ',' NUM2 ',' SEXPR EOS
 LSXIO       .byte _EXPR,CCOM
             ; OPEN statement
-            ; SOPEN : IOEXP ',' NUM2 ',' [fallthrough] SEXPR EOS
+            ; SOPEN : IOEXP ',' NUM2 ',' [fall through] SEXPR EOS
 LSOPEN      .byte _IOEXP,CCOM,_NUM2,CCOM
             ; Statement with one string argument
             ;  : SEXPR EOS
@@ -7217,7 +7217,7 @@ LIOOPT      .byte _IOEXP,_PSEP,SOR,SRTN
             ; IOSOPT : IOEXP PSEP | STCONST PSEP |
 LIOSOPT     .byte _IOEXP,_PSEP,SOR,_STCONST,_PSEP,SOR,SRTN
             ; LIST expression
-            ; SLIST : ?? SNUM1 | ?? SNUM2 | ?? EXPR ',' EOS | [fallthrough] SSTRING | EOS
+            ; SLIST : ?? SNUM1 | ?? SNUM2 | ?? EXPR ',' EOS | [fall through] SSTRING | EOS
 LSLIST      .byte _STROPT,_SNUM1,SOR,_STROPT,_SNUM2,SOR,_STROPT,_EXPR,CCOM,_EOS,SOR
             ; DIR / DUMP expression
             ; SDIR : SSTRING | EOS
@@ -7232,10 +7232,10 @@ LSNOTE      .byte _IOEXP,CCOM,_NVARN,CCOM,_SNVARN,SRTN
             ; NUM2 : EXPR ',' EXPR
 LNUM2       .byte _EXPR,CCOM,_EXPR,SRTN
             ; SOUND / DSOUND expression
-            ; SSOUND : EOS | EXPR ',' [fallthrough] EXPR ',' NUM2 EOS
+            ; SSOUND : EOS | EXPR ',' [fall through] EXPR ',' NUM2 EOS
 LSSOUND     .byte _EOS,SOR,_EXPR,CCOM
             ; Statement with three numeric expressions
-            ; SNUM3 : EXPR ',' [fallthrough] NUM2 EOS
+            ; SNUM3 : EXPR ',' [fall through] NUM2 EOS
 LSNUM3      .byte _EXPR,CCOM
             ; Statement with two numeric expressions
             ; SNUM2 : NUM2 EOS
@@ -7257,7 +7257,7 @@ LGTLIST      .byte CGTO,_SNUMN,SOR,CGS,_SNUMN,SOR,CEXEC,_LBLIST,SOR,CGOG,_LBLIST
             ; One or more numeric expressions
             ; SNUMN : EXPR SNUMX
 LSNUMN      .byte _EXPR,_SNUMX,SRTN
-            ; Optional more numerir expressions
+            ; Optional more numeric expressions
             ;  : ',' SNUMN  | <none>
 LSNUMX      .byte CCOM,_SNUMN,SOR,SRTN
             ; Variable DIM spec
@@ -7277,7 +7277,7 @@ LOPTDIM     .byte CCOM,_VARDIMX,SOR,SRTN
 LSIF        .byte _EXPR,CTHEN,_STHEN,_EOS,SOR,_EXPR,_EOS,SRTN
             ; Expression after THEN
             ; Note: only a number is possible, not a variable, this is probably
-            ;       to avoid missparsing "THEN A = 2" as "THEN A <ERROR> = 2"
+            ;       to avoid mis-parsing "THEN A = 2" as "THEN A <ERROR> = 2"
             ; STHEN : TNCON | _EIF
 LSTHEN      .byte _TNCON,SOR,_EIF
             ; Main print expression, can start with an expression or with a separator
@@ -7289,16 +7289,16 @@ LPRINT2     .byte _PEXL,SOR,SRTN
             ; List of one or more print expressions
             ; PEXL : PEXPR PEXLA
 LPEXL       .byte _PEXPR,_PEXLA,SRTN
-            ; Numeric or String expresion to print
+            ; Numeric or String expression to print
             ; PEXPR : EXPR | SEXPR
 LPEXPR      .byte _EXPR,SOR,_SEXPR,SRTN
-            ; Print expression list aditional
+            ; Print expression list additional
             ; PEXLA : PSL PRINT2 | <none>
 LPEXLA      .byte _PSL,_PRINT2,SOR,SRTN
             ; List of one or more print separators (like ',,;')
             ; PSL : PSEP PSLA
 LPSL        .byte _PSEP,_PSLA,SRTN
-            ; Aditional separators for the list of separators
+            ; Additional separators for the list of separators
             ; PSLA : PSL | <none>
 LPSLA       .byte _PSL,SOR,SRTN
             ; Print separator
@@ -7326,7 +7326,7 @@ LSREM       .byte _EREM
             ; FINSTR : NFLPRN SEXPR ',' (as CACOM) SEXPR OPTNPAR ')'
 LFINSTR     .byte _FNLPRN,_SEXPR,CCOM,SCHNG,CACOM,_SEXPR,_OPTNPAR,CRPRN,SRTN
             ; Statement defining a label ('PROC' or '#')
-            ; SLABEL : CHKLBL [fallthrough] LVARN EOS
+            ; SLABEL : CHKLBL [fall through] LVARN EOS
 LSLABEL     .byte _CHKLBL
             ; Label name at end of statement
             ; SEXEC : LVARN EOS
@@ -9257,4 +9257,4 @@ LFFE8       lda (STMCUR),Y
 LFFEF       jmp LE678
 ;
 
-
+; vi:syntax=mads
