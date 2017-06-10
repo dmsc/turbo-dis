@@ -2932,7 +2932,7 @@ L34B4       jsr L3566
             beq L34C2
             cpx #$18
             bne L3459
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 L34C0       inc STINDEX
 L34C2       lda STINDEX
             cmp NXTSTD
@@ -3028,7 +3028,7 @@ L3568       jsr GETTOK
             rts
 
 X_BLOAD     lda #$00
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_BRUN      lda #$80
             sta BLOADFLAG
             lda #<LOW_RTS
@@ -3596,7 +3596,7 @@ X_FCOLOR    jsr GETINT
             rts
 
 X_FILLTO    lda #$12
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_DRAWTO    lda #$11
             pha
             jsr X_POSITION
@@ -3681,7 +3681,7 @@ OPEN_Y_CHN  sty IODVC
             rts
 
 RUN_LOAD    lda #$FF
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_LOAD      lda #$00
             pha
             lda #$04    ; INPUT mode
@@ -3796,7 +3796,7 @@ LC3B4       pha
             jmp T_INTLBF        ; Restore INBUFF and return
 
 X_XIO       jsr GETINT
-            .byte $2C           ; Skip next inst.
+            .byte $2C   ; Skip 2 bytes
 
 X_OPEN      lda #ICOPEN
             sta IOCMD
@@ -4070,7 +4070,7 @@ X_DELETE    lda #ICDELETE
             jmp DO_CIO_STR
 
 X_BPUT      lda #ICPUTCHR
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_BGET      lda #ICGETCHR
             pha
             jsr GETIOCHAN
@@ -4574,7 +4574,7 @@ LC999       bne LC997
             clc
             rts
 LC99D       lda #$C1
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 LC9A0       lda #$C2
             tax
             iny
@@ -4974,7 +4974,7 @@ X_N0        lda #$00
             tay
             beq X_TF
 X_N3        ldy #$03
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_N2        ldy #$02
             lda #$40
             bne X_TF
@@ -5454,7 +5454,7 @@ LDC4D       pla
             sta FR0
 LDC54       jmp X_PUSHVAL
 X_DEG       lda #$06
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_RAD       lda #$00
             sta L00FB
             rts
@@ -5618,7 +5618,7 @@ X_LPRINT    lda #$13
             jsr X_PRINT
             jmp CLSYSD
 X_UINSTR    lda #$5F
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_INSTR     lda #$FF
             sta L00DF
             ldy L00B0
@@ -6090,11 +6090,11 @@ X_POPINT    jsr X_POPVAL
 LE523       jsr GETINT
             beq LE4FA
 ERR_3       lda #$03
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_9       lda #$09
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_11      lda #$0B
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_10      lda #$0A
             jmp ERROR
 
@@ -6823,7 +6823,7 @@ LEAAF       jsr LEA68
             beq LEAAF
 LEABA       jsr T_IFP
             lda #$0D
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 LEAC0       lda #$0E
             jsr LE8F7
             ldy L0094
@@ -7713,7 +7713,7 @@ LF276       lda #'-'
 LF282       jsr LF338
             bne LF28B
             jsr LF338
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 LF28B       bpl LF29C
             eor #$80
             jsr LF3B1
@@ -8404,7 +8404,7 @@ X_WEND      jsr X_POP
             rts
 
 ERR_23      lda #$17
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_24      lda #$18
             jmp ERROR
 
@@ -8476,9 +8476,9 @@ POP_RETURN  ldy L00B2
             rts
 
 ERR_15      lda #$0F
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_16      lda #$10
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_26      lda #$1A
             jmp ERROR
 
@@ -8505,9 +8505,10 @@ X_ENDPROC   jsr X_POP
             bne X_ENDPROC
 LF879       sec
             sbc #$A4
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_28      lda #$1C
             jmp ERROR
+
 X_EXEC      jsr X_DO
 LF885       ldx #$C1
 LF887       ldy STINDEX
@@ -8532,12 +8533,15 @@ LF890       eor #$80
             lda (STMCUR),Y
             sta NXTSTD
             rts
+
 X_GO_S      ldx #$C2
             bne LF887
+
 ERR_27      lda #$1B
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_25      lda #$19
             jmp ERROR
+
 X_LOOP      jsr X_POP
             bcs ERR_25
             cmp #$45
@@ -8547,12 +8551,13 @@ X_LOOP      jsr X_POP
             lda #$45
             jmp POP_RETURN
 ERR_22B     jmp ERR_22
+
 ERR_21      lda #$15
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_19      lda #$13
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 ERR_18      lda #$12
-            .byte $2C
+            .byte $2C   ; Skip 2 bytes
 X_ERROR     lda #$11
 ERROR       sta L00B9
 LF8DE       lda #$00
