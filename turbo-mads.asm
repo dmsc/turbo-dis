@@ -3403,8 +3403,8 @@ LC04C       jsr PUTEOL
             inc L00B9
             bne LC04C
             ; Fall-through to dump last variable
-DUMP_VAR    jsr LF3B1
-            jsr LF202
+DUMP_VAR    jsr P_VARNAME
+            jsr P_SPC
             lda VTYPE
             cmp #EVLABEL
             bcs DUMP_LBL
@@ -3478,8 +3478,12 @@ LC0DC       jsr X_POP
             lda #>LC180
             sta L00A0+1
 LC0ED       tay
+.if .not .def tb_fixes
             ; BUG: this should be a "BEQ", as FOR loops store "0" in the runtime stack
             bmi LC0FE
+.else
+            beq LC0FE
+.endif
             ldy #$00
             lda (L00A0),Y
             iny
@@ -3490,11 +3494,20 @@ LC0ED       tay
             bcc LC0DC
 LC0FE       ldy #$00
             lda (L00A0),Y
+            ; This should be $0E and $0F
+.if .def tb_fixes
+            ldy #$0E
+.else
             ldy #$13
+.endif
             sta (TOPRSTK),Y
             ldy #$01
             lda (L00A0),Y
+.if .def tb_fixes
+            ldy #$0F
+.else
             ldy #$14
+.endif
             sta (TOPRSTK),Y
             bcc LC0DC
 REST_VARS   pla
@@ -3548,9 +3561,15 @@ LC158       lda #$00
             sta STMCUR+1
 LC15E       ldy #$01
             pla
+.if .not .def tb_fixes
             ; BUG: this should be a "BNE", as FOR loops store "0" in the runtime stack
             bpl LC165
+            ; And this should be $0E
             ldy #$13
+.else
+            bne LC165
+            ldy #$0E
+.endif
 LC165       lda STMCUR
             sta (TOPRSTK),Y
             iny
@@ -5227,7 +5246,7 @@ X_DEC       jsr SETSEOL
             sty CIX
             sty FR0
             sty FR0+1
-LD9CD       jsr LEA68
+LD9CD       jsr GET_HEXDIG
             bcc LD9CD
             jsr RSTSEOL
             jmp X_RET_INT
@@ -5703,7 +5722,7 @@ XPRINT_TAB  ldy L0094
 LDD60       ldy L0094
             cpy L00AF
             bcs XPRINT_NUL
-            jsr LF202
+            jsr P_SPC
             inc L0094
             jmp LDD60
 
@@ -6385,7 +6404,7 @@ LE635       sta STARP
             sta (STMCUR),Y
             lda #$0A
             sta L00C9
-            jmp LFF66
+            jmp TRACE_OFF
 LE65D       ldx #$FF
             txs
             cld
@@ -6397,10 +6416,12 @@ LE668       jsr LF6E7
 LE66B       jsr CLSALL
 LE66E       jsr LF5D1
             lda MEOLFLG
-            beq LE678
+            beq SYN_PROMPT
             jsr RSTSEOL
-LE678       jsr PREADY
-LE67B       jsr UNFIX_RSTK
+SYN_PROMPT  jsr PREADY
+
+; Start parsing code
+SYN_START   jsr UNFIX_RSTK
 ; Parse one line
 SYN_LINE    lda L00CA
             bne X_NEW
@@ -6798,7 +6819,7 @@ LSTVARN     lda #EVSTR
 GETVARN     sta VTYPE
             jsr UCASEBUF
             sty TVSCIX
-            jsr LEA53
+            jsr CHK_NAMECHR
             bcs LE9AD
             jsr LE92B
             lda SVONTC
@@ -6808,7 +6829,7 @@ GETVARN     sta VTYPE
             cmp #'0'
             bcc LE9AD
 LE994       inc CIX
-            jsr LEA53
+            jsr CHK_NAMECHR
             bcc LE994
             cmp #'0'
             bcc LE9A3
@@ -6907,9 +6928,9 @@ LEA4C       eor #$80
 LEA51       clc
             rts
 
-LEA53       ldy CIX
+CHK_NAMECHR ldy CIX
             lda (INBUFF),Y
-LEA57       cmp #'_'
+IS_NAMECHR  cmp #'_'
             beq LEA51
             cmp #'A'
             bcc LEA66
@@ -6921,7 +6942,7 @@ LEA62       ldy TVSCIX
 LEA66       sec
             rts
 
-LEA68       ldy CIX
+GET_HEXDIG  ldy CIX
             lda (INBUFF),Y
             sec
             sbc #'0'
@@ -6958,9 +6979,9 @@ LTNCON
 LEAA2       inc CIX
             jsr UCASEBUF
             jsr T_ZFR0
-            jsr LEA68
+            jsr GET_HEXDIG
             bcs LEA62
-LEAAF       jsr LEA68
+LEAAF       jsr GET_HEXDIG
             bcs LEABA
             lda FR0+1
             and #$F0
@@ -7758,7 +7779,8 @@ LF1B2       sta DSPFLG
 POP_RETURN  jsr X_POP
             jmp RETURN
 
-LF1BB       stx ARSLVL
+; Search string #X in table at AY
+STR_TABN    stx ARSLVL
             sta L0096
             sty L0095
 LF1C1       ldy ARSLVL
@@ -7779,7 +7801,9 @@ LF1D7       clc
             bcc LF1E1
             inc L0096
 LF1E1       rts
-LF1E2       ldy #$FF
+
+; Print a string terminated with high bit set
+P_STRB      ldy #$FF
             sty L00AF
 LF1E6       inc L00AF
             ldy L00AF
@@ -7793,9 +7817,10 @@ LF1F5       jsr PUTCHAR
 LF1F8       pla
             bpl LF1E6
             rts
-LF1FC       jsr LF202
-LF1FF       jsr LF1E2
-LF202       lda #' '
+
+LF1FC       jsr P_SPC
+P_STR_SPC   jsr P_STRB
+P_SPC       lda #' '
             jmp PUTCHAR
 
 PRINTLINE   ldy #$00
@@ -7816,7 +7841,7 @@ PRINTLINE   ldy #$00
 LF226       dex
             dex
 LF228       stx FR0
-LF22A       jsr LF202
+LF22A       jsr P_SPC
             dec FR0
             bpl LF22A
 LF231       ldy #$02
@@ -7832,21 +7857,22 @@ LF238       lda (STMCUR),Y
             cpy LLNGTH
             bcc LF238
             rts
-LF249       jsr LF33A
+LF249       jsr L_GTOK
             cmp #TOK_INVLET ; list an invisible "LET"
-            beq LF282
+            beq L_ADV
             cmp #TOK_LREM   ; list a "--"
-            beq LF26B
-            jsr LF346
-            jsr LF33A
+            beq PRINT_LREM
+            jsr IPRINTSTMT
+            jsr L_GTOK
             cmp #TOK_ERROR
             beq LF262
             cmp #TOK_DATA+1 ; First statements are "REM" and "DATA"
-            bcs LF282
-LF262       jsr LF338
+            bcs L_ADV
+LF262       jsr L_NXTOK
             jsr PUTCHAR
             jmp LF262
-LF26B       ldy #$1E
+
+PRINT_LREM  ldy #$1E
             lda F_LIST
             bne LF274
             ldy #$02
@@ -7856,26 +7882,28 @@ LF276       lda #'-'
             dec FR0
             bne LF276
             jmp PUTEOL
-LF282       jsr LF338
+
+L_ADV       jsr L_NXTOK
             bne LF28B
-            jsr LF338
+            jsr L_NXTOK
             .byte $2C   ; Skip 2 bytes
-LF28B       bpl LF29C
+LF28B       bpl L_NOTVAR
             eor #$80
-            jsr LF3B1
+            jsr P_VARNAME
             cmp #$A8
-            bne LF282
-            jsr LF338
-            jmp LF282
-LF29C       cmp #$0F
-            beq LF2CE
-            bcs LF2F7
+            bne L_ADV
+            jsr L_NXTOK
+            jmp L_ADV
+
+L_NOTVAR    cmp #$0F
+            beq L_STRC
+            bcs L_TOKS
             pha
             jsr EGT_NUM
             dec STINDEX
             pla
             cmp #$0D
-            bne LF2BF
+            bne L_FPVAR
             lda #'$'
             jsr PUTCHAR
             jsr T_FPI
@@ -7883,18 +7911,21 @@ LF29C       cmp #$0F
             ora #$80
             sta LBUFF-1,Y
             bne LF2C2
-LF2BF       jsr T_FASC
-LF2C2       jsr LF95C
-            jmp LF282
-LF2C8       jsr LF1E2
-            jmp LF282
-LF2CE       jsr LF338
+L_FPVAR     jsr T_FASC
+LF2C2       jsr PUT_INBUF
+            jmp L_ADV
+
+LF2C8       jsr P_STRB
+            jmp L_ADV
+
+; List string constant
+L_STRC      jsr L_NXTOK
             sta L00AF
             lda #'"'
             jsr PUTCHAR
             lda L00AF
             beq LF2EF
-LF2DC       jsr LF338
+LF2DC       jsr L_NXTOK
             cmp #'"'
             bne LF2E8
             jsr PUTCHAR
@@ -7904,15 +7935,16 @@ LF2E8       jsr PUTCHAR
             bne LF2DC
 LF2EF       lda #'"'
             jsr PUTCHAR
-            jmp LF282
-LF2F7       sec
+            jmp L_ADV
+
+L_TOKS      sec
             sbc #$10
             sta L00AF
             ldx #$00
             lda #>OPNTAB
             ldy #<OPNTAB
-            jsr LF1BB
-            jsr LF33A
+            jsr STR_TABN
+            jsr L_GTOK
             cmp #CEXOR
             beq LF32F
             cmp #CFDIV
@@ -7930,13 +7962,14 @@ LF2F7       sec
             ldy #$00
             lda (L0095),Y
             and #$7F
-            jsr LEA57
+            jsr IS_NAMECHR
             bcs LF2C8
-LF32F       jsr LF202
-LF332       jsr LF1FF
-            jmp LF282
-LF338       inc STINDEX
-LF33A       ldy STINDEX
+LF32F       jsr P_SPC
+LF332       jsr P_STR_SPC
+            jmp L_ADV
+
+L_NXTOK     inc STINDEX
+L_GTOK      ldy STINDEX
             cpy NXTSTD
             bcs LF343
             lda (STMCUR),Y
@@ -7946,16 +7979,18 @@ LF343       pla
             pla
             rts
 
-LF346       pha
-            jsr LF359
+; Indent and print statement
+IPRINTSTMT  pha
+            jsr CHK_INDENT
             pla
 PRINTSTMT   sta L00AF
             ldx #$01
             lda #>SNTAB
             ldy #<SNTAB
-            jsr LF1BB
-            jmp LF1FF
-LF359       cmp #TOK_FOR
+            jsr STR_TABN
+            jmp P_STR_SPC
+
+CHK_INDENT  cmp #TOK_FOR
             beq LINDENT
             cmp #TOK_REPEAT
             beq LINDENT
@@ -8006,12 +8041,12 @@ CHKELOOP    cmp #TOK_NEXT
             cmp #TOK_ENDIF
 ERET        rts
 
-LF3B1       sta L00AF
+P_VARNAME   sta L00AF
             ldx #$00
             lda VNTP+1
             ldy VNTP
-            jsr LF1BB
-            jmp LF1E2
+            jsr STR_TABN
+            jmp P_STRB
 
 X_FOR       sty L00B3
             lda (STMCUR),Y
@@ -8258,7 +8293,10 @@ X_IF        jsr EXEXPR
             lda ARGSTK1,X
             beq IF_FALSE
             ldx STINDEX
+.if .not .def tb_fixes
+            ; BUG: This INX is not necessary, as STINDEX already points to NXTSTD.
             inx
+.endif
             cpx NXTSTD
             bcs X_ENDIF
             jmp X_GOTO
@@ -8294,7 +8332,7 @@ X_STOP      jsr LF5C4
             sta L0095
             lda #>STOPPED
             sta L0096
-            jsr LF1E2
+            jsr P_STRB
             jmp LF92E
 LF5C4       ldy #$01
             lda (STMCUR),Y
@@ -8736,7 +8774,7 @@ LF8DE       lda #$00
             sta DSPFLG
             jsr LF5C4
             ldy L00BD
-            bmi LF8FC
+            bmi ERR_NOTRAP
             lda L00BC
             ldx #$80
             stx L00BD
@@ -8746,13 +8784,13 @@ LF8DE       lda #$00
             stx L00B9
             jmp GTO_LINE
 
-LF8FC       lda L00B9
+ERR_NOTRAP  lda L00B9
             cmp #$80
-            bne LF905
+            bne ERR_PRINT
             jmp X_STOP
-LF905       jsr PUTEOL
-            lda #$37
-            jsr LF346
+ERR_PRINT   jsr PUTEOL
+            lda #TOK_ERROR
+            jsr IPRINTSTMT
             ldx L00B9
             lda #$00
             jsr PUT_AX
@@ -8766,14 +8804,14 @@ LF91C       sta L00AF
             ldx #$00
             lda #>ERRTAB
             ldy #<ERRTAB
-            jsr LF1BB
+            jsr STR_TABN
             jsr LF1FC
 LF92E       ldy #$01
             lda (STMCUR),Y
             bmi LF949
             lda #<ERRTAB
             ldy #>ERRTAB
-            jsr LF960
+            jsr P_STRB_AY
             ldy #$01
             lda (STMCUR),Y
             sta FR0+1
@@ -8782,17 +8820,18 @@ LF92E       ldy #$01
             sta FR0
             jsr LF956
 LF949       jsr PUTEOL
-            jsr LFF66
-            jmp LE67B
+            jsr TRACE_OFF
+            jmp SYN_START
+
 PUT_AX      sta FR0+1
             stx FR0
 LF956       jsr T_IFP
 PUT_FP      jsr T_FASC
-LF95C       lda INBUFF
+PUT_INBUF   lda INBUFF
             ldy INBUFF+1
-LF960       sta L0095
+P_STRB_AY   sta L0095
             sty L0096
-            jmp LF1E2
+            jmp P_STRB
 
 ERRTAB
            .cb ' AT LINE '
@@ -9447,12 +9486,12 @@ X_CLS       jsr CLEAR_XYPOS
 
 X_TRACE     lda (STMCUR),Y
             cmp #TOK_STOP
-            beq LFF66
+            beq TRACE_OFF
             lda #$4C       ; JMP DO_TRACE
             ldx #<DO_TRACE
             ldy #>DO_TRACE
             bne LFF6C
-LFF66       lda #$A0       ; LDY #02 / LDA (),Y
+TRACE_OFF   lda #$A0       ; LDY #02 / LDA (),Y
             ldx #$02
             ldy #$B1
 LFF6C       sta EXECNL      ; Patch instruction
@@ -9490,6 +9529,7 @@ GTO_LINE    sta TSLNUM
             beq CHK_BRK_
 
 ; Execute new line
+; NOTE: you can't change the first two instructions without changing
 EXECNL      ldy #$02
             lda (STMCUR),Y
 ; Continue execution after trace
@@ -9514,9 +9554,10 @@ EXE_STMT    asl
             sta JUMP_STMT+1
 JUMP_STMT   jmp (STMT_X_TAB)
 
+; Execute next line, or return to parsing if not more lines
 NEXT_LINE   ldy #$01
             lda (STMCUR),Y
-            bmi LFFEF
+            bmi SYN_PROMPT_
             clc
             lda LLNGTH
             adc STMCUR
@@ -9527,7 +9568,7 @@ LFFE8       lda (STMCUR),Y
             bpl EXECNL
             jmp X_END
 
-LFFEF       jmp LE678
+SYN_PROMPT_ jmp SYN_PROMPT
 ;
 
 ; vi:syntax=mads
