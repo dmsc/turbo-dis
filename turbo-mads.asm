@@ -720,7 +720,7 @@ TBXL_ROMLOADER = $6000
 ;
             ; Adjust MEMLO
             org MEMLO
-            .word $3629
+            .word TOP_LOWMEM
 
             ; Load character definitions for chars 64-95
             org RAM_CHMAP + $200
@@ -3161,7 +3161,9 @@ BGET_WORD   lda #$07
             tay
             pla
             rts
-;
+
+; This is the end of low memory use
+TOP_LOWMEM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Loader for the RAM under ROM parts and initialization, this will be
