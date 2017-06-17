@@ -859,13 +859,15 @@ FPTMP3      .ds 8
 FPTMP4      .ds 8
 FPTMP5      .ds 8
 
+.if .not .def tb_fixes
 ; Note: 6 bytes skipped to align next block to $2300
             .ds 6
-
 ;            org $2300
             nop
             jsr DISROM
             jmp ERR_9
+.endif ; tb_fixes
+
 IO_DIRSPEC  .byte 'D:*.*', CR
 DEV_S_      .byte 'S:', CR
 DEV_C_      .byte 'C:', CR
@@ -873,12 +875,9 @@ DEV_P_      .byte 'P:', CR
 
 BLOADFLAG   .ds 1
 
-; Note: Skip this 13 bytes so that DISROM has an address with <DISROM == >DISROM + 1
+; Note: Skip this 13 bytes so that DISROM has an address with <(DISROM-1) == >(DISROM-1)
 ;       This is used as return to USR call
-            .ds 13
-.if (<*) != (1 + >*)
-        .error "Error, DISROM should be properly aligned"
-.endif
+            .ds (>*)-((* & $00FF) - 1)
 
 ;            org $2324
 DISROM      lda PORTB
@@ -1063,7 +1062,9 @@ X_USR       jsr DO_USR
 
 DO_USR      lda #>(DISROM-1)
             pha
-            ; lda #<(DISROM-1)
+.if (<(DISROM-1)) != (>(DISROM-1))
+            lda #<(DISROM-1)
+.endif
             pha
             lda COMCNT
             sta L00C6
