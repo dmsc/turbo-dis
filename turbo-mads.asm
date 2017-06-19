@@ -1130,7 +1130,8 @@ L25C6       lda $00,X
             sta APPMHI+1
             lda TOPRSTK
             sta APPMHI
-L25DE       inc PORTB
+
+DO_MOVEDWN  inc PORTB
             ldx L00A3
             clc
             txa
@@ -1204,7 +1205,8 @@ L2644       sec
             sta APPMHI+1
             lda TOPRSTK
             sta APPMHI
-L265D       inc PORTB
+
+DO_MOVEUP   inc PORTB
             ldy #$00
             ldx L00A3
             beq L2683
@@ -4524,7 +4526,7 @@ LC857       clc
             txa
             sbc STARP+1
             sta L00FA
-            jsr L265D
+            jsr DO_MOVEUP
             lda VNUM
             jsr GETVAR
             sec
@@ -5016,12 +5018,12 @@ PRINT_STR   ldx #$00
 X_MOVE      jsr GET3INT
             sta L00A2
             sty L00A3
-            jmp L265D
+            jmp DO_MOVEUP
 
 X_NMOVE     jsr GET3INT
             sta L00A2
             sty L00A3
-            jmp L25DE
+            jmp DO_MOVEDWN
 
 X_FADD      jsr X_POPVAL2
             jsr T_FADD
