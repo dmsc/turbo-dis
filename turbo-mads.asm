@@ -7784,7 +7784,8 @@ LF1B2       sta DSPFLG
 POP_RETURN  jsr X_POP
             jmp RETURN
 
-; Search string #X in table at AY
+; Search string #($AF) in table at AY, skipping the first X bytes on each string.
+; Returns string address at ($95:$96)
 STR_TABN    stx ARSLVL
             sta L0096
             sty L0095
