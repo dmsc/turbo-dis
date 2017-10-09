@@ -3645,7 +3645,7 @@ X_DSOUND    sta L00A2
             iny
             cpy NXTSTD
             bcs ENDSOUND
-            jsr LE523
+            jsr GETBYTE
             ldy #$00
             bit L00A2
             bpl LC1EC
@@ -3681,7 +3681,7 @@ LC20F       lda L009B
 X_POSITION  jsr GETINT
             sta COLCRS
             sty COLCRS+1
-            jsr LE523
+            jsr GETBYTE
             sta ROWCRS
             rts
 
@@ -4461,7 +4461,7 @@ LC7E4       sec
             bne LC7F7
             txa
             beq LC817
-LC7F7       jsr LE4DF
+LC7F7       jsr PTRSTR
             clc
             lda FR0
             adc L00F5
@@ -5324,10 +5324,10 @@ LDA3C       iny
 X_INKEYP    lda CH
             ldy #$00
             cmp #$C0
-            bcs LDA6D
+            bcs RET_STR_LY
             ldx #MUTED_KEYS_N-1
 LDA55       cmp MUTED_KEYS,X
-            beq LDA6D
+            beq RET_STR_LY
             dex
             bpl LDA55
             jsr GETKEYE
@@ -5337,7 +5337,7 @@ X_CHRP      jsr X_POPINT
             lda FR0
 RET_CHRP    sta LBUFF+$40
             ldy #$01
-LDA6D       lda #<(LBUFF+$40)
+RET_STR_LY  lda #<(LBUFF+$40)
 RET_STR_A   ldx #>(LBUFF+$40)
 PUSHSTR     stx FR0+1
             sta FR0
@@ -5856,7 +5856,9 @@ LDE54       dec L00DC
 LDE59       lda L00DA
             ldy L00DB
             jmp X_RET_AY
-LDE60       sta FR0+2
+
+            ; Calculate A*A, store in $E5+X and $E6+X (FR1+5+X, FR1+6+X)
+ASQUARE     sta FR0+2
             sta FR0+3
             ldy #$08
 LDE66       asl L00E6,X
@@ -5886,20 +5888,39 @@ LDE89       cpy NXTSTD
             bne ERR_3G
 LDE92       pla
             bne LDE97
-            lda #$01
+            lda #$01    ; Don't allow radius_X = 0
 LDE97       sta FR0+1
+            ; Here we have the following variables:
+            ;   $99/$9A         : Center_X
+            ;   $9B/$9C         : Center_Y
+            ;   $D4 (FR0)       : Radius_Y
+            ;   $D5 (FR0+1)     : Radius_X
+            ;   $D6 (FR0+2)     : temporary variable 1
+            ;   $D7 (FR0+3)     : temporary variable 2
+            ;   $DC/$DB/$DA     : Add_Y = Radius_Y^2 * X, starts = Radius_Y^2 * Radius_X)
+            ;   $E0 (FR1)       : X, starts = Radius_X
+            ;   $E1 (FR1+1)     : Y, starts = 0
+            ;   $E4/$E3/$E2     : Error, starts at 0
+            ;   $E6/$E5         : Radius_X^2
+            ;   $E8/$E7         : Radius_Y^2
+            ;   $EB/$EA/$E9     : Add_X = Radius_X^2 * Y, starts = 0
+            ;
+            ; Clear all variables to 0
             ldx #$16
             lda #$00
 LDE9D       sta FR0+2,X
             dex
             bpl LDE9D
+            ; Gets (radius_X)^2 -> $E6/$E5 and radius_X -> $E0 (X)
             lda FR0+1
             sta FR1
             inx
-            jsr LDE60
+            jsr ASQUARE
+            ; Gets (radius_Y)^2 -> $E8/$E7
             lda FR0
             ldx #$02
-            jsr LDE60
+            jsr ASQUARE
+            ; Multiplies (radius_Y^2) * (radius_X) -> $DC/$DB/$DA
             lda FR0+1
             sta FR0+2
             ldy #$08
@@ -5919,18 +5940,21 @@ LDEB7       asl L00DC
             inc L00DA
 LDED2       dey
             bne LDEB7
+            ; Plots 4 points in the circle
 LDED5       jsr ADD_XPOS
-            jsr ADD_Y_PLOT
+            jsr ADD_Y_PLOT      ; center + (+x,+y)
             jsr ADD_XPOS
-            jsr SUB_Y_PLOT
+            jsr SUB_Y_PLOT      ; center + (+x,-y)
             jsr SUB_XPOS
-            jsr ADD_Y_PLOT
+            jsr ADD_Y_PLOT      ; center + (-x,+y)
             jsr SUB_XPOS
-            jsr SUB_Y_PLOT
+            jsr SUB_Y_PLOT      ; center + (-x,-y)
+            ; Test error
             bit FR1+2
             bmi LDF12
-            inc FR1+1
-            clc
+            ; Error Positive, increment Y
+            inc FR1+1           ; Y = Y + 1
+            clc                 ; Add_X = Add_X + Radius_X ^ 2
             lda L00EB
             adc L00E6
             sta L00EB
@@ -5939,18 +5963,20 @@ LDED5       jsr ADD_XPOS
             sta L00EA
             bcc LDF04
             inc L00E9
-LDF04       sec
+LDF04       sec                 ; Error = Error - Add_X
             ldx #$02
 LDF07       lda FR1+2,X
             sbc L00E9,X
             sta FR1+2,X
             dex
             bpl LDF07
-            bmi LDED5
+            bmi LDED5           ; Loop again
+
+            ; Error Negative, decrement X
 LDF12       lda FR1
             beq CLEAR_XYPOS
-            dec FR1
-            sec
+            dec FR1             ; X = X - 1
+            sec                 ; Add_Y = Add_Y - Radius_Y ^2
             lda L00DC
             sbc L00E8
             sta L00DC
@@ -5959,14 +5985,15 @@ LDF12       lda FR1
             sta L00DB
             bcs LDF29
             dec L00DA
-LDF29       clc
+LDF29       clc                 ; Error = Error + Add_Y
             ldx #$02
 LDF2C       lda FR1+2,X
             adc L00DA,X
             sta FR1+2,X
             dex
             bpl LDF2C
-            bmi LDED5
+            bmi LDED5           ; Loop Again
+
 ADD_XPOS    clc
             lda L0099
             adc FR1
@@ -5976,7 +6003,7 @@ ADD_XPOS    clc
             sta COLCRS+1
             rts
 
-CLEAR_XYPOS  ldx #$00
+CLEAR_XYPOS ldx #$00
             stx ROWCRS
             stx COLCRS
             stx COLCRS+1
@@ -5996,7 +6023,7 @@ ADD_Y_PLOT  clc
             sta ROWCRS
             lda L009C
             adc #$00
-            beq LDF77
+            beq CIRC_PLOT
 LDF69       rts
 SUB_Y_PLOT  sec
             lda L009B
@@ -6005,10 +6032,10 @@ SUB_Y_PLOT  sec
             lda L009C
             sbc #$00
             bne LDF69
-LDF77       ldy COLOR
+CIRC_PLOT   ldy COLOR
             ldx #$60
             jsr PDUM_ROM
-            cpy #$80
+            cpy #$80    ; Check for BREAK key
             bne LDF69
             jmp CIOERR_Y
 
@@ -6207,9 +6234,9 @@ GETVAR      sta VNUM
             rts
 
 X_POPSTR    jsr X_POPVAL
-LE4DF       lda #EVSDTA
+PTRSTR      lda #EVSDTA
             bit VTYPE
-            bne LE4FA
+            bne RTS_E4
             ora VTYPE
             sta VTYPE
             lsr
@@ -6222,10 +6249,10 @@ LE4DF       lda #EVSDTA
             lda FR0+1
             adc STARP+1
             sta FR0+1
-LE4FA       rts
+RTS_E4      rts
 
 GETUINT     jsr GETINT
-            bpl LE4FA
+            bpl RTS_E4
             lda #$07
             jmp ERROR
 GET3INT     jsr GETINT
@@ -6241,8 +6268,8 @@ X_POPINT    jsr X_POPVAL
             lda FR0
             ldy FR0+1
             rts
-LE523       jsr GETINT
-            beq LE4FA
+GETBYTE     jsr GETINT
+            beq RTS_E4
 ERR_3       lda #$03
             .byte $2C   ; Skip 2 bytes
 ERR_9       lda #$09
