@@ -525,8 +525,9 @@ LOG10       = $DED1
 P10COF      = $DE4D
 SQR10       = $DF66
 LGCOEF      = $DF72
-FP9S        = $DFEA
 ATNCOEF     = $DFAE
+FP9S        = $DFEA
+FP_PI4      = $DFF0     ; PI/4
 ;
 ; ROM VECTORS
 ;
@@ -684,7 +685,7 @@ L00F7       = $00F7
 L00F8       = $00F8
 L00F9       = $00F9
 L00FA       = $00FA
-L00FB       = $00FB
+DEGFLAG     = $00FB
 L00FC       = $00FC
 L00FD       = $00FD
 L0480       = $0480
@@ -1969,7 +1970,7 @@ L2C8A       sty FR0+2
             sta FR0+3
             lda #$42
             sta FR0
-            jmp L2DB8
+            jmp NORMALIZE
 
 RET_CLC2    clc
             rts
@@ -2084,7 +2085,7 @@ L2D2F       sed
             lda #$01
             sta FR0+1
             inc FR0
-L2D6D       jmp L2DB8
+L2D6D       jmp NORMALIZE
 
 L2D70       sec
             lda FR0+5
@@ -2102,7 +2103,7 @@ L2D70       sec
             lda FR0+1
             sbc FR1+1
             sta FR0+1
-            bcs L2DB8
+            bcs NORMALIZE
             lda FR0
             eor #$80
             sta FR0
@@ -2122,11 +2123,12 @@ L2D70       sec
             tya
             sbc FR0+1
             sta FR0+1
-            jmp L2DB8
+            jmp NORMALIZE
 
 L2DB4       ldx L00DA
             bne L2DBA
-L2DB8       ldx #$00
+
+NORMALIZE   ldx #$00
 L2DBA       cld
             ldy FR0
             beq L2E2C
@@ -2195,7 +2197,7 @@ L2E30       rts
 T_PLYEVL    stx L00FC
             sty L00FD
             sta L00EF
-            jsr L2EB5
+            jsr FMOVPLYARG
             jsr T_FLD1P
             dec L00EF
 L2E3F       jsr T_FMUL
@@ -2245,6 +2247,7 @@ T_FLD1P     ldy #$05
             sta FR1
             rts
 
+            ; Move FR0 to FR1
 T_FMOVE     lda FR0
             sta FR1
             lda FR0+1
@@ -2259,7 +2262,8 @@ T_FMOVE     lda FR0
             sta FR1+5
             rts
 
-L2EB5       lda FR0
+            ; Move FR0 to PLYARG
+FMOVPLYARG  lda FR0
             sta PLYARG+0
             lda FR0+1
             sta PLYARG+1
@@ -2273,7 +2277,8 @@ L2EB5       lda FR0
             sta PLYARG+5
             rts
 
-L2ED4       lda FR0
+            ; Move FR0 to FPSCR
+FMOVSCR     lda FR0
             sta FPSCR+0
             lda FR0+1
             sta FPSCR+1
@@ -2287,14 +2292,17 @@ L2ED4       lda FR0
             sta FPSCR+5
             rts
 
+            ; Load FR0 from PLYARG
 LDPLYARG    ldx #$00
-            jmp LD05E0X
+            jmp LD_PLY_X
 
+            ; Load FR0 from FPSCR
 LDFPSCR     ldx #$06
-            jmp LD05E0X
+            jmp LD_PLY_X
 
+            ; Load FR0 from FPSCR1
 LDFPSCR1    ldx #$0C
-LD05E0X     lda PLYARG+0,X
+LD_PLY_X    lda PLYARG+0,X
             sta FR0
             lda PLYARG+1,X
             sta FR0+1
@@ -2307,10 +2315,14 @@ LD05E0X     lda PLYARG+0,X
             lda PLYARG+5,X
             sta FR0+5
             rts
-L2F1E       ldx #$0C
-            jmp L2F25
-L2F23       ldx #$06
-L2F25       lda PLYARG+0,X
+
+            ; Load FR1 from FPSCR1
+LD1FPSCR1   ldx #$0C
+            jmp LD1_PLY_X
+
+            ; Load FR1 from FPSCR
+LD1FPSCR    ldx #$06
+LD1_PLY_X   lda PLYARG+0,X
             sta FR1
             lda PLYARG+1,X
             sta FR1+1
@@ -2323,6 +2335,9 @@ L2F25       lda PLYARG+0,X
             lda PLYARG+5,X
             sta FR1+5
 L2F43       rts
+
+            ; Calculate FR0 = EXP(FR0)
+            ; $DDC0 in original mathpack
 T_FEXP      ldx #$05
             inc PORTB
 L2F49       lda LDE89,X
@@ -2332,7 +2347,10 @@ L2F49       lda LDE89,X
             dec PORTB
             jsr T_FMUL
             bcs L2F43
-L2F59       lda #$00
+
+            ; Calculate FR0 = EXP10(FR0)
+            ; $DDCC in original mathpack
+T_EXP10     lda #$00
             sta L00F1
             lda FR0
             sta L00F0
@@ -2355,7 +2373,7 @@ L2F59       lda #$00
             sta L00F1
             lda #$00
             sta FR0+1
-            jsr L2DB8
+            jsr NORMALIZE
 L2F87       lda #$0A
             ldx #<P10COF
             ldy #>P10COF
@@ -2392,28 +2410,35 @@ T_FLD1      lda #$40
             sty FR0+5
             rts
 
-L2FCD       stx L00FC
+            ; Compute FR0 = (FR0 - C) / (FR1 + C)
+            ; with C in [X:Y]
+            ; $DE95 in original mathpack
+REDRNG      stx L00FC
             sty L00FD
-            jsr L2EB5
+            jsr FMOVPLYARG
             jsr T_FLD1P
             jsr T_FADD
-            jsr L2ED4
+            jsr FMOVSCR
             jsr LDPLYARG
             jsr T_FLD1P
             jsr T_FSUB
-            jsr L2F23
+            jsr LD1FPSCR
             jmp T_FDIV
-L2FEC       sec
+RTS_SEC3    sec
             rts
 
+            ; Compute FR0 = LN(FR0)
+            ; $DECD in orignal mathpack
 T_FLOG      lda #$05
             bne L2FF4
 
+            ; Compute FR0 = LOG_10(FR0)
+            ; $DED1 in orignal mathpack
 T_FCLOG     lda #$00
 L2FF4       sta L00F0
             lda FR0
-            bmi L2FEC
-            beq L2FEC
+            bmi RTS_SEC3
+            beq RTS_SEC3
             asl
             eor #$80
             sta L00F1
@@ -2427,15 +2452,15 @@ L2FF4       sta L00F0
 L3010       ldx #<SQR10
             ldy #>SQR10
             inc PORTB
-            jsr L2FCD
-            jsr L2ED4
+            jsr REDRNG
+            jsr FMOVSCR
             jsr T_FSQ
             lda #$0A
             ldx #<LGCOEF
             ldy #>LGCOEF
             jsr T_PLYEVL
             dec PORTB
-            jsr L2F23
+            jsr LD1FPSCR
             jsr T_FMUL
             lda #$3F
             sta FR1
@@ -2463,7 +2488,7 @@ L3053       sta FR0
             sta FR0
             jsr T_FADD
             ldx L00F0
-            beq L307C
+            beq RTS_CLC
             inc PORTB
 L306E       lda LDE89,X
             sta FR1,X
@@ -2471,23 +2496,26 @@ L306E       lda LDE89,X
             bpl L306E
             dec PORTB
             jmp T_FDIV
-L307C       clc
+RTS_CLC     clc
             rts
-L307E       sec
+RTS_SEC2    sec
             rts
 
-T_FSIN      lda #$04
+T_FSIN      lda #$04    ; Positive SIN
             bit FR0
-            bpl L308C
-            lda #$02
-            bne L308C
+            bpl SINCOS
+            lda #$02    ; Negative SIN
+            bne SINCOS
 
-T_FCOS      lda #$01
-L308C       sta L00F0
+T_FCOS      lda #$01    ; Positive/Negative COS
+
+SINCOS      sta L00F0
+            ; Get absolute value of FR0
             lda FR0
             and #$7F
             sta FR0
-            ldx L00FB
+            ; And divide by 90° or PI/2
+            ldx DEGFLAG
             lda F_PI2,X
             sta FR1
             lda F_PI2+1,X
@@ -2501,46 +2529,49 @@ L308C       sta L00F0
             lda F_PI2+5,X
             sta FR1+5
             jsr T_FDIV
-            bcs L307E
+            bcs RTS_SEC2
+            ; Extract integer/fractional parts
             lda FR0
             and #$7F
             sec
             sbc #$40
-            bmi L30E6
+            bmi L30E6   ; Less than 1.0, already have fractional part
             cmp #$04
-            bpl L307E
+            bpl RTS_SEC2        ; More than 100000000, error
             tax
-            lda FR0+1,X
-            sta L00F1
+            lda FR0+1,X         ; Get lower two digits
+            sta L00F1           ; Calculate (10*A+B) MOD 4 == ((A MOD 2)*2 + B) MOD 4
             and #$10
             beq L30D1
             lda #$02
 L30D1       clc
             adc L00F1
-            and #$03
-            adc L00F0
+            and #$03            ; We now have te quadrant
+            adc L00F0           ; Add starting quadrant from the start
             sta L00F0
             stx L00F1
             lda #$00
-L30DE       sta FR0+1,X
+L30DE       sta FR0+1,X         ; Set integer part to 0
             dex
             bpl L30DE
-            jsr L2DB8
-L30E6       lsr L00F0
+            jsr NORMALIZE       ; And normalize FP number
+
+L30E6       lsr L00F0           ; Check odd quadrants, and compute FR0 = (1-FR0)
             bcc L30F3
             jsr T_FMOVE
             jsr T_FLD1
             jsr T_FSUB
-L30F3       jsr L2ED4
-            jsr T_FSQ
-            bcs L307E
+
+L30F3       jsr FMOVSCR         ; Store FR0 into FPSCR
+            jsr T_FSQ           ; And get FR0^2
+            bcs RTS_SEC2
             lda #$06
             ldx #<SCOEF
             ldy #>SCOEF
-            jsr T_PLYEVL
-            jsr L2F23
-            jsr T_FMUL
-            lsr L00F0
+            jsr T_PLYEVL        ; Evaluate polynomial in X^2
+            jsr LD1FPSCR
+            jsr T_FMUL          ; Multiply by original X
+            lsr L00F0           ; Check quadrant to negate result
             bcc L3117
             clc
             lda FR0
@@ -2575,9 +2606,9 @@ T_FATN      lda #$00
             ldx #<FP9S
             ldy #>FP9S
             inc PORTB
-            jsr L2FCD
+            jsr REDRNG
             dec PORTB
-L3171       jsr L2ED4
+L3171       jsr FMOVSCR
             jsr T_FSQ
             bcs L31C0
             lda #$0B
@@ -2587,14 +2618,14 @@ L3171       jsr L2ED4
             jsr T_PLYEVL
             dec PORTB
             bcs L31C0
-            jsr L2F23
+            jsr LD1FPSCR
             jsr T_FMUL
             bcs L31C0
             lda L00F1
             beq L31AF
             ldx #$05
             inc PORTB
-L319B       lda LDFF0,X
+L319B       lda FP_PI4,X
             sta FR1,X
             dex
             bpl L319B
@@ -2603,7 +2634,7 @@ L319B       lda LDFF0,X
             lda L00F0
             ora FR0
             sta FR0
-L31AF       lda L00FB
+L31AF       lda DEGFLAG
             beq L31C0
             ldx #$05
 L31B5       lda F_1DEG,X
@@ -2631,12 +2662,12 @@ L31D8       lda #$06
             sta L00EF
             lda #$3F
             sta FR0
-            jsr L2ED4
+            jsr FMOVSCR
             jsr T_FMOVE
             jsr T_FLD1
             inc FR0+1
             jsr T_FSUB
-            jsr L2F23
+            jsr LD1FPSCR
             jsr T_FMUL
 L31F4       lda FR0
             sta FPSCR1+0
@@ -2653,12 +2684,12 @@ L31F4       lda FR0
             jsr T_FMOVE
             jsr LDFPSCR
             jsr T_FDIV
-            jsr L2F1E
+            jsr LD1FPSCR1
             jsr T_FSUB
             jsr L324F
             lda FR0
             beq L3234
-            jsr L2F1E
+            jsr LD1FPSCR1
             jsr T_FADD
             dec L00EF
             bpl L31F4
@@ -3201,9 +3232,11 @@ L600A       stx JSR_GETKEY+1
             lda #$40
             sta NMIEN
             cli
+            ; Activate ROM and load rest of file
             lda #$FF
             sta PORTB
-            jsr L6101
+            jsr LOAD_BLOCK
+
             lda #$00
             sta BOOT
             lda DOSINI
@@ -3222,11 +3255,13 @@ L600A       stx JSR_GETKEY+1
             stx BOOT
             dex
             stx COLDST
-            jsr LE604
+            jsr INIT_MEM
             lda #$00
             sta TSLNUM
             sta TSLNUM+1
             jsr SRCHLN_NC
+
+            ; Insert startup program, open "E:" and run
             ldy #ARUN_LEN
             ldx #STMCUR
             jsr EXPLOW
@@ -3291,8 +3326,12 @@ L60F3       lda VARSTK0,Y
             dex
             bne L60E3
             rts
-L6101       ldx #$10
-            lda #$D6
+
+            ; Load 4 bytes (block header) from file
+            ;  FR0+2/FR0+3 : START_ADDR
+            ;  FR0+4/FR0+5 : END_ADDR
+LOAD_BLOCK  ldx #$10
+            lda #(FR0+2)
             sta IOCB0+ICBAL,X
             lda #$00
             sta IOCB0+ICBAH,X
@@ -3302,13 +3341,16 @@ L6101       ldx #$10
             lda #$07
             sta IOCB0+ICCOM,X
             jsr CIOV
-            bmi L6178
-            lda #$7C
+            bmi LOAD_END
+
+            ; Load block data to buffer
+            lda #<LOAD_BUFFER
             sta L00DA
             sta IOCB0+ICBAL,X
-            lda #$61
+            lda #>LOAD_BUFFER
             sta L00DB
             sta IOCB0+ICBAH,X
+            ; Calculate length: LEN = END-START+1
             lda FR0+4
             sbc FR0+2
             sta L00DC
@@ -3323,7 +3365,9 @@ L613F       lda L00DC
             lda L00DD
             sta IOCB0+ICBLH,X
             jsr CIOV
-            bmi L6179
+            bmi LOAD_ERROR
+
+            ; Now, copy block to real location in RAM under ROM
             dec PORTB
             ldy #$00
             ldx L00DD
@@ -3345,10 +3389,12 @@ L6169       lda (L00DA),Y
             bne L6169
 L6171       lda #$FF
             sta PORTB
-            bmi L6101
-L6178       rts
-L6179       jmp (DOSVEC)
+            bmi LOAD_BLOCK
+LOAD_END    rts
+LOAD_ERROR  jmp (DOSVEC)
 ;
+LOAD_BUFFER = *
+
             ini INIT
 
 
@@ -5366,7 +5412,7 @@ LDA97       lda RANDOM
             sta FR0,X
             dex
             bne LDA8C
-            jsr L2DB8
+            jsr NORMALIZE
             jmp X_RET_FP
 
 X_RAND      jsr X_RND
@@ -5393,7 +5439,7 @@ X_FRAC      jsr X_POPVAL
 LDAD6       sta FR0+1,X
             dex
             bpl LDAD6
-            jsr L2DB8
+            jsr NORMALIZE
             jmp X_PUSHVAL
 LDAE1       inc ARSLVL
             rts
@@ -5517,12 +5563,12 @@ LDBC3       lda #$00
             pha
             lda FR1
             cmp #$40
-            bne LDC1A
+            bne POW_FP
             lda FR1+2
             ora FR1+3
             ora FR1+4
             ora FR1+5
-            bne LDC1A
+            bne POW_FP
             lda FR1+1
             and #$F0
             lsr
@@ -5535,11 +5581,11 @@ LDBC3       lda #$00
             and #$0F
             adc L00FC
             sta L00FC
-            jsr L2EB5
+            jsr FMOVPLYARG
             lsr L00FC
             bcs LDBF6
             jsr T_FLD1
-LDBF6       jsr L2ED4
+LDBF6       jsr FMOVSCR
             lda L00FC
             beq LDC4D
             jsr LDPLYARG
@@ -5547,15 +5593,15 @@ LDC00       jsr T_FSQ
             bcs ERR_11_
             lsr L00FC
             bcc LDC00
-            jsr L2EB5
-            jsr L2F23
+            jsr FMOVPLYARG
+            jsr LD1FPSCR
             jsr T_FMUL
             bcc LDBF6
 ERR_11_     jmp ERR_11
 
 ERR_3F      jmp ERR_3
 
-LDC1A       lda FR1+5
+POW_FP      lda FR1+5
             pha
             lda FR1+4
             pha
@@ -5583,7 +5629,7 @@ LDC1A       lda FR1+5
             sta FR1+5
             jsr T_FMUL
             bcs ERR_11_
-            jsr L2F59
+            jsr T_EXP10
             bcs ERR_11_
 LDC4D       pla
             bpl LDC54
@@ -5594,8 +5640,9 @@ LDC54       jmp X_PUSHVAL
 X_DEG       lda #$06
             .byte $2C   ; Skip 2 bytes
 X_RAD       lda #$00
-            sta L00FB
+            sta DEGFLAG
             rts
+
 LDC5F       jsr X_POPINT
             sta FR1
             sty FR1+1
@@ -6098,7 +6145,7 @@ LDFE9       iny
             lda (L0095),Y
             bpl LDFE9
 LDFEE       inc L00AF
-LDFF0       sec
+            sec
             tya
             adc L0095
             bcc LDFC9
@@ -6390,7 +6437,8 @@ VAR_PTR     asl
             ldy #$00
             rts
 
-LE604       lda #$00
+; Initializes memory pointers, erasing current program
+INIT_MEM    lda #$00
             sta MEOLFLG
             sta L00CA
             lda MEMLO
@@ -6443,7 +6491,7 @@ LE65D       ldx #$FF
             lda L00CA
             beq LE668
 
-X_NEW       jsr LE604
+X_NEW       jsr INIT_MEM
 LE668       jsr LF6E7
 LE66B       jsr CLSALL
 LE66E       jsr LF5D1
@@ -8526,7 +8574,7 @@ LF6E7       ldy #$00
             sty L00BA
             sty L00BB
             sty L00B9
-            sty L00FB
+            sty DEGFLAG
             sty DATAD
             sty DATALN
             sty DATALN+1
@@ -8996,7 +9044,7 @@ LFB18       sty CIX
             jmp RET_STR_A
 
 TM_EXTRACT  pha
-            jsr L2DB8
+            jsr NORMALIZE
             jsr T_FMOVE
             jsr T_FLD1
             pla
