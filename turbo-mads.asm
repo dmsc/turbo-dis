@@ -695,8 +695,8 @@ L0483       = $0483
 
 LBUFF       = $0580
 
-L05C0       = $05C0
-L05C8       = $05C8
+PLOT_MASK   = $05C0
+PLOT_PIX    = $05C8
 
 PLYARG      = $05E0
 FPSCR       = $05E6
@@ -9191,7 +9191,7 @@ LFC4E       lda FR0+2
             lda (FR0),Y
             bpl LFC60
             dec L00DB
-LFC60       jsr LFCD0
+LFC60       jsr ATA2SCR
             asl
             asl
             sta L00A2
@@ -9213,16 +9213,16 @@ LFC77       ldy #$08
             ldy FR1+3
 LFC87       asl L00DA
             lda (L00DE),Y
-            and L05C0,X
+            and PLOT_MASK,X
             bcc LFC93
-            ora L05C8,X
+            ora PLOT_PIX,X
 LFC93       sta (L00DE),Y
             dec L00DD
             beq LFCA0
-            jsr LFF0B
+            jsr PLOT_ICOL
             cpy FR1+1
             bcc LFC87
-LFCA0       jsr LFEE0
+LFCA0       jsr PLOT_IROW2
             inc L00DC
             lda L00DC
             cmp #$08
@@ -9243,9 +9243,11 @@ LFCC1       lda FR0+2
             dec FR0+3
 LFCC7       dec FR0+2
             jmp LFC4E
-LFCCC       rti
-            jsr FKDEF
-LFCD0       tay
+
+            ; Transform ATASCII to screen code
+ATASCR_T    .byte $40,$20,$60,$00
+
+ATA2SCR     tay
             asl
             asl
             rol
@@ -9253,7 +9255,7 @@ LFCD0       tay
             and #$03
             tax
             tya
-            eor LFCCC,X
+            eor ATASCR_T,X
             rts
 
 GR_ROWS     .byte $18,$18,$0C,$18,$30,$30,$60,$60
@@ -9269,6 +9271,23 @@ GR_BPP      .byte $04,$02,$01
 RTS_SEC     sec
             rts
 
+            ; Fill tables for fast PLOT
+            ;
+            ; INPUT:
+            ;   L0099 : plot row
+            ;   L009B : plot column (lo)
+            ;   L008C :             (hi)
+            ;   COLOR : color to use (OS variable)
+            ;   DINDEX: current graphics mode (OS variable)
+            ;
+            ; OUTPUT:
+            ;   carry    : set on error
+            ;   PLOT_PIX : table of bytes to plot the pixel (OR-ed to the screen)
+            ;   PLOT_MASK: table of masks to plot (AND-ed to the screen)
+            ;   L00DE    : pointer to screen byte at start of row
+            ;   FR1+3    : byte to plot in the line
+            ;   L00ED    : index into PLOT_PIX/PLOT_MASK table for current point
+            ;
 PREPLOT     lda DINDEX
             and #$0F
             tax
@@ -9293,7 +9312,7 @@ LFD31       asl
             ldy GR_COLRS,X
             sty FR1+2
             lda GR_MASK,Y
-            sta L05C0
+            sta PLOT_MASK
             lda GR_STRIDE,X
             sta FR1+1
             lsr
@@ -9334,8 +9353,8 @@ LFD86       lda FR1+4
             ldx FR1+2
             bne LFD9E
             lda COLOR
-            jsr LFCD0
-            sta L05C8
+            jsr ATA2SCR
+            sta PLOT_PIX
             clc
             rts
 
@@ -9344,9 +9363,9 @@ LFD9E       ldy GR_PPBYTE,X
             lda GR_BPP-1,X
             sta L00EE
             lda COLOR
-            ora L05C0
-            eor L05C0
-LFDB0       sta L05C8,Y
+            ora PLOT_MASK
+            eor PLOT_MASK
+LFDB0       sta PLOT_PIX,Y
             ldx L00EE
 LFDB5       asl
             dex
@@ -9354,8 +9373,8 @@ LFDB5       asl
             dey
             bpl LFDB0
             ldy FR1+4
-            lda L05C0
-LFDC1       sta L05C0,Y
+            lda PLOT_MASK
+LFDC1       sta PLOT_MASK,Y
             ldx L00EE
 LFDC6       sec
             rol
@@ -9366,6 +9385,17 @@ LFDC6       sec
             clc
 LFDCF       rts
 
+            ; PAINT (flood fill)
+            ; NOTE:
+            ;   Fills complete horizontal lines, storing a list of pixel spans in
+            ;   a buffer indexed by (L00A2), initialized to the top of the return
+            ;   stack, up to MEMTOP.
+            ;   Each span is stored in 3 bytes, as expanded column:
+            ;     0: left byte ($00 to $7F), bit 7 = direction (up/down)
+            ;     1: bit 3-5: left pos
+            ;        but 0-2: right pos
+            ;     2: right byte ($00 to $7F)
+            ;
 X_PAINT     jsr GET2INT
             sta L0099
             bne LFDCF
@@ -9381,7 +9411,8 @@ X_PAINT     jsr GET2INT
             lda MEMTOP+1
             sbc #$00
             sta L00E8
-LFDF2       clc
+            ; Paint next span
+PAINT_NXT   clc
             lda L00A2
             adc #$03
             sta L00A2
@@ -9395,18 +9426,20 @@ LFDFD       cmp L00E7
 
 LFE08       ldx L00ED
             ldy FR1+3
-            jsr LFF26
+            jsr PLOT_GET
             beq LFE14
             jmp LFEBA
-LFE14       jsr LFF1B
-LFE17       jsr LFF14
+            ; Plot all possible points to the left
+LFE14       jsr PLOT_SET
+LFE17       jsr PLOT_DCOL
             tya
             bmi LFE28
-            jsr LFF26
+            jsr PLOT_GET
             bne LFE28
-            jsr LFF1B
+            jsr PLOT_SET
             jmp LFE17
-LFE28       jsr LFF0B
+            ; Store last point to the left
+LFE28       jsr PLOT_ICOL
             tya
             ldy #$00
             sta (L00A2),Y
@@ -9416,16 +9449,18 @@ LFE28       jsr LFF0B
             asl
             iny
             sta (L00A2),Y
+            ; Plot all possible points to the right
             ldy FR1+3
             ldx L00ED
-LFE3B       jsr LFF0B
+LFE3B       jsr PLOT_ICOL
             cpy FR1+1
             bcs LFE4D
-            jsr LFF26
+            jsr PLOT_GET
             bne LFE4D
-            jsr LFF1B
+            jsr PLOT_SET
             jmp LFE3B
-LFE4D       jsr LFF14
+            ; Store last point to the right
+LFE4D       jsr PLOT_DCOL
             tya
             ldy #$02
             sta (L00A2),Y
@@ -9433,13 +9468,16 @@ LFE4D       jsr LFF14
             dey
             ora (L00A2),Y
             sta (L00A2),Y
+            ; Test pixels in the next row (from current span)
             ldy L0099
             iny
             cpy FR1
             bcs LFE85
-            jsr LFEDE
+            jsr PLOT_IROW
+            ; Start from left span coordinate
             jsr LFEFA
-LFE68       ldy #$01
+LFE68       ; Check if we have more pixels in the span to test DOWN
+            ldy #$01
             lda (L00A2),Y
             and #$07
             cmp L00ED
@@ -9451,15 +9489,18 @@ LFE68       ldy #$01
             lda (L00A2),Y
             ora #$80
 LFE7D       sta (L00A2),Y
-            jmp LFDF2
-LFE82       jsr LFEEC
+            jmp PAINT_NXT
+LFE82       jsr PLOT_DROW
+            ; Test pixels in prev row (from current span)
 LFE85       ldy L0099
             dey
             cpy FR1
             bcs LFEAC
-            jsr LFEEC
+            jsr PLOT_DROW
+            ; Start from left span coordinate
             jsr LFEFA
-LFE92       ldy #$01
+LFE92       ; Check if we have more pixels in the span to test UP
+            ldy #$01
             lda (L00A2),Y
             and #$07
             cmp L00ED
@@ -9471,7 +9512,7 @@ LFE92       ldy #$01
             lda (L00A2),Y
             and #$7F
             bpl LFE7D
-LFEA9       jsr LFEDE
+LFEA9       jsr PLOT_IROW
 LFEAC       ldy #$01
             lda (L00A2),Y
             and #$07
@@ -9479,8 +9520,10 @@ LFEAC       ldy #$01
             iny
             lda (L00A2),Y
             tay
-            jsr LFF0B
-LFEBA       jsr LFF0B
+            // Ensure that we are outside span, we tested all
+            jsr PLOT_ICOL
+            ; End current span, continue from next pixel on old span
+LFEBA       jsr PLOT_ICOL
             stx L00ED
             sty FR1+3
             sec
@@ -9493,20 +9536,23 @@ LFECC       cmp TOPRSTK
             bne LFED6
             lda L00A3
             cmp TOPRSTK+1
-            beq LFEEB
+            beq PAINT_RTS
 LFED6       ldy #$00
             lda (L00A2),Y
             bpl LFE92
             bmi LFE68
-LFEDE       inc L0099
-LFEE0       clc
+
+            ; Increment plot row
+PLOT_IROW   inc L0099
+PLOT_IROW2  clc
             lda L00DE
             adc FR1+1
             sta L00DE
-            bcc LFEEB
+            bcc PAINT_RTS
             inc L00DF
-LFEEB       rts
-LFEEC       dec L0099
+PAINT_RTS   rts
+            ; Decrement plot row
+PLOT_DROW   dec L0099
             sec
             lda L00DE
             sbc FR1+1
@@ -9514,6 +9560,7 @@ LFEEC       dec L0099
             bcs LFEF9
             dec L00DF
 LFEF9       rts
+            ; Read left pixel from span list
 LFEFA       ldy #$00
             lda (L00A2),Y
             and #$7F
@@ -9525,29 +9572,33 @@ LFEFA       ldy #$00
             lsr
             sta L00ED
             rts
-LFF0B       cpx FR1+4
+            ; Increment plot column
+PLOT_ICOL   cpx FR1+4
             inx
             bcc LFF13
             ldx #$00
             iny
 LFF13       rts
-LFF14       dex
+            ; Decrement plot column
+PLOT_DCOL   dex
             bpl LFF1A
             ldx FR1+4
             dey
 LFF1A       rts
-LFF1B       lda (L00DE),Y
-            and L05C0,X
-            ora L05C8,X
+            ; Plots a pixel at current coordinates
+PLOT_SET    lda (L00DE),Y
+            and PLOT_MASK,X
+            ora PLOT_PIX,X
             sta (L00DE),Y
             rts
-LFF26       lda (L00DE),Y
-            ora L05C0,X
-            eor L05C0,X
+            ; Get pixel value at current coordinates
+PLOT_GET    lda (L00DE),Y
+            ora PLOT_MASK,X
+            eor PLOT_MASK,X
             beq LFF34
-            lda L05C8
+            lda PLOT_PIX
             rts
-LFF34       lda L05C8
+LFF34       lda PLOT_PIX
             beq LFF3C
             lda #$00
             rts
