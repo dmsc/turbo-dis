@@ -639,8 +639,9 @@ DATAD       = $B6
 DATALN      = $B7
 
 L00B9       = $00B9
-L00BA       = $00BA
-L00BB       = $00BB
+
+STOPLN      = $00BA
+
 L00BC       = $00BC
 L00BD       = $00BD
 L00BE       = $00BE
@@ -650,7 +651,7 @@ IOCMD       = $C0
 IODVC       = $C1
 
 L00C2       = $00C2
-L00C3       = $00C3
+ERRSAVE     = $00C3
 
 TEMPA       = $C4
 
@@ -891,58 +892,285 @@ DISROM      lda PORTB
 ;       because the first executable token is '<=' at $1D
             org ((* - $3A + $FF) & $FF00) + $3A
 OPETAB
-;
-            .word X_LTE,X_NEQU,X_GTE,X_LT
-            .word X_GT,X_EQU,X_POW,X_FMUL
-            .word X_FADD,X_FSUB,X_FDIV,X_NOT
-            .word X_OR,X_AND,X_LPAREN,X_RPAREN
-            .word X_FPASIGN,X_STRASIGN,X_LTE,X_NEQU
-            .word X_GTE,X_LT,X_GT,X_EQU
-            .word X_UPLUS,X_FNEG,X_STRLPAREN,X_ARRLPAREN
-            .word X_DIMLPAREN,X_RPAREN,X_DIMLPAREN,X_ARRCOMMA
-            .word X_STRP,X_CHRP,X_USR,X_ASC
-            .word X_VAL,X_LEN,X_ADR,X_ATN
-            .word X_COS,X_PEEK,X_SIN,X_RNDFN
-            .word X_FRE,X_EXP,X_LOG,X_CLOG
-            .word X_SQR,X_SGN,X_ABS,X_INT
-            .word X_PADDLE,X_STICK,X_PTRIG,X_STRIG
-            .word X_DPEEK,X_BITAND,X_BITOR,X_INSTR
-            .word X_INKEYP,X_EXOR,X_HEXP,X_DEC
-            .word X_DIV,X_FRAC,X_TIMEP,X_TIME
-            .word X_MOD,X_ONEXEC,X_RND,X_RAND
-            .word X_TRUNC
-            .word X_N0,X_N1,X_N2,X_N3
-            .word X_ONGOS,X_UINSTR,X_ERR,X_ERL
-            ; Table with right operator precedence
-OPRTAB      .byte $00,$00,$00,$00,$00,$00,$00,$00
-            .byte $00,$00,$00,$00,$00,$20,$20,$20
-            .byte $20,$20,$20,$2C,$28,$22,$22,$28
-            .byte $1E,$1A,$1C,$32,$04,$32,$32,$30
-            .byte $30,$30,$30,$30,$30,$2E,$2E,$32
-            .byte $32,$32,$32,$32,$04,$32,$32,$32
-            .byte $32,$32,$32,$32,$32,$32,$32,$32
-            .byte $32,$32,$32,$32,$32,$32,$32,$32
-            .byte $32,$32,$32,$32,$32,$32,$2A,$2A
-            .byte $32,$32,$2A,$32,$32,$28
-            .byte $32,$32,$32,$28,$00,$32,$32,$32
-            .byte $32,$32,$32,$32,$00,$32,$32,$32
-            ; Table with left operator precedence
-OPLTAB      .byte $00,$00,$00,$00,$00,$00,$00,$00
-            .byte $00,$00,$00,$00,$00,$20,$20,$20
-            .byte $20,$20,$20,$2C,$28,$22,$22,$28
-            .byte $1D,$1A,$1C,$02,$30,$01,$01,$30
-            .byte $30,$30,$30,$30,$30,$2D,$2D,$02
-            .byte $02,$02,$02,$02,$03,$02,$02,$02
-            .byte $02,$02,$02,$02,$02,$02,$02,$02
-            .byte $02,$02,$02,$02,$02,$02,$02,$02
-            .byte $02,$02,$02,$02,$02,$02,$2A,$2A
-            .byte $02,$32,$2A,$02,$02,$28,$02,$32
-            .byte $32,$28,$00,$32,$02,$02,$32,$32
-            .byte $32,$32,$00,$02,$32,$32
+            .word X_LTE       ; CLE     '<='
+            .word X_NEQU      ; CNE     '<>'
+            .word X_GTE       ; CGE     '>='
+            .word X_LT        ; CLT     '<'
+            .word X_GT        ; CGT     '>'
+            .word X_EQU       ; CEQ     '='
+            .word X_POW       ; CEXP    '^'
+            .word X_FMUL      ; CMUL    '*'
+            .word X_FADD      ; CPLUS   '+'
+            .word X_FSUB      ; CMINUS  '-'
+            .word X_FDIV      ; CDIV    '/'
+            .word X_NOT       ; CNOT    'NOT'
+            .word X_OR        ; COR     'OR'
+            .word X_AND       ; CAND    'AND'
+            .word X_LPAREN    ; CLPRN   '('
+            .word X_RPAREN    ; CRPRN   ')'
+            .word X_FPASIGN   ; CAASN   '='
+            .word X_STRASIGN  ; CSASN   '='
+            .word X_LTE       ; CSLE    '<='
+            .word X_NEQU      ; CSNE    '<>'
+            .word X_GTE       ; CSGE    '>='
+            .word X_LT        ; CSLT    '<'
+            .word X_GT        ; CSGT    '>'
+            .word X_EQU       ; CSEQ    '='
+            .word X_UPLUS     ; CUPLUS  '+'
+            .word X_FNEG      ; CUMINUS '-'
+            .word X_STRLPAREN ; CSLPRN  '('
+            .word X_ARRLPAREN ; CALPRN  '('
+            .word X_DIMLPAREN ; CDLPRN  '('
+            .word X_RPAREN    ; CFLPRN  '('
+            .word X_DIMLPAREN ; CDSLPRN '('
+            .word X_ARRCOMMA  ; CACOM   ','
+            .word X_STRP      ; CSTR    'STR$'
+            .word X_CHRP      ; CCHR    'CHR$'
+            .word X_USR       ; CUSR    'USR'
+            .word X_ASC       ; CASC    'ASC'
+            .word X_VAL       ; CVAL    'VAL'
+            .word X_LEN       ; CLEN    'LEN'
+            .word X_ADR       ; CADR    'ADR'
+            .word X_ATN       ; CATN    'ATN'
+            .word X_COS       ; CCOS    'COS'
+            .word X_PEEK      ; CPEEK   'PEEK'
+            .word X_SIN       ; CSIN    'SIN'
+            .word X_RNDFN     ; CRND    'RND'
+            .word X_FRE       ; CFRE    'FRE'
+            .word X_EXP       ; CFEXP   'EXP'
+            .word X_LOG       ; CLOG    'LOG'
+            .word X_CLOG      ; CCLOG   'CLOG'
+            .word X_SQR       ; CSQR    'SQR'
+            .word X_SGN       ; CSGN    'SGN'
+            .word X_ABS       ; CABS    'ABS'
+            .word X_INT       ; CINT    'INT'
+            .word X_PADDLE    ; CPADDLE 'PADDLE'
+            .word X_STICK     ; CSTICK  'STICK'
+            .word X_PTRIG     ; CPTRIG  'PTRIG'
+            .word X_STRIG     ; CSTRIG  'STRIG'
+            .word X_DPEEK     ; CDPEEK  'DPEEK'
+            .word X_BITAND    ; CIAND   '&'
+            .word X_BITOR     ; CIOR    '!'
+            .word X_INSTR     ; CINSTR  'INSTR'
+            .word X_INKEYP    ; CINKEYP 'INKEY$'
+            .word X_EXOR      ; CEXOR   'EXOR'
+            .word X_HEXP      ; CHEXP   'HEX$'
+            .word X_DEC       ; CDEC    'DEC'
+            .word X_DIV       ; CFDIV   'DIV'
+            .word X_FRAC      ; CFRAC   'FRAC'
+            .word X_TIMEP     ; CTIMEP  'TIME$'
+            .word X_TIME      ; CTIME   'TIME'
+            .word X_MOD       ; CMOD    'MOD'
+            .word X_ONEXEC    ; CEXEC   'EXEC'
+            .word X_RND       ; CRNDU   'RND'
+            .word X_RAND      ; CRAND   'RAND'
+            .word X_TRUNC     ; CTRUNC  'TRUNC'
+            .word X_N0        ; CN0     '%0'
+            .word X_N1        ; CN1     '%1'
+            .word X_N2        ; CN2     '%2'
+            .word X_N3        ; CN3     '%3'
+            .word X_ONGOS     ; CGOG    'GO#'
+            .word X_UINSTR    ; CUINSTR 'UINSTR'
+            .word X_ERR       ; CERR    'ERR'
+            .word X_ERL       ; CERL    'ERL'
+
+OPRTAB      ; Table with right operator precedence
+            .byte $00 ; CDQ     '"'
+            .byte $00 ; CSOE
+            .byte $00 ; CCOM    ','
+            .byte $00 ; CDOL    '$'
+            .byte $00 ; CEOS    ':'
+            .byte $00 ; CSC     ';'
+            .byte $00 ; CCR     CR
+            .byte $00 ; CGTO    'GOTO'
+            .byte $00 ; CGS     'GOSUB'
+            .byte $00 ; CTO     'TO'
+            .byte $00 ; CSTEP   'STEP'
+            .byte $00 ; CTHEN   'THEN'
+            .byte $00 ; CPND    '#'
+            .byte $20 ; CLE     '<='
+            .byte $20 ; CNE     '<>'
+            .byte $20 ; CGE     '>='
+            .byte $20 ; CLT     '<'
+            .byte $20 ; CGT     '>'
+            .byte $20 ; CEQ     '='
+            .byte $2C ; CEXP    '^'
+            .byte $28 ; CMUL    '*'
+            .byte $22 ; CPLUS   '+'
+            .byte $22 ; CMINUS  '-'
+            .byte $28 ; CDIV    '/'
+            .byte $1E ; CNOT    'NOT'
+            .byte $1A ; COR     'OR'
+            .byte $1C ; CAND    'AND'
+            .byte $32 ; CLPRN   '('
+            .byte $04 ; CRPRN   ')'
+            .byte $32 ; CAASN   '='
+            .byte $32 ; CSASN   '='
+            .byte $30 ; CSLE    '<='
+            .byte $30 ; CSNE    '<>'
+            .byte $30 ; CSGE    '>='
+            .byte $30 ; CSLT    '<'
+            .byte $30 ; CSGT    '>'
+            .byte $30 ; CSEQ    '='
+            .byte $2E ; CUPLUS  '+'
+            .byte $2E ; CUMINUS '-'
+            .byte $32 ; CSLPRN  '('
+            .byte $32 ; CALPRN  '('
+            .byte $32 ; CDLPRN  '('
+            .byte $32 ; CFLPRN  '('
+            .byte $32 ; CDSLPRN '('
+            .byte $04 ; CACOM   ','
+            .byte $32 ; CSTR    'STR$'
+            .byte $32 ; CCHR    'CHR$'
+            .byte $32 ; CUSR    'USR'
+            .byte $32 ; CASC    'ASC'
+            .byte $32 ; CVAL    'VAL'
+            .byte $32 ; CLEN    'LEN'
+            .byte $32 ; CADR    'ADR'
+            .byte $32 ; CATN    'ATN'
+            .byte $32 ; CCOS    'COS'
+            .byte $32 ; CPEEK   'PEEK'
+            .byte $32 ; CSIN    'SIN'
+            .byte $32 ; CRND    'RND'
+            .byte $32 ; CFRE    'FRE'
+            .byte $32 ; CFEXP   'EXP'
+            .byte $32 ; CLOG    'LOG'
+            .byte $32 ; CCLOG   'CLOG'
+            .byte $32 ; CSQR    'SQR'
+            .byte $32 ; CSGN    'SGN'
+            .byte $32 ; CABS    'ABS'
+            .byte $32 ; CINT    'INT'
+            .byte $32 ; CPADDLE 'PADDLE'
+            .byte $32 ; CSTICK  'STICK'
+            .byte $32 ; CPTRIG  'PTRIG'
+            .byte $32 ; CSTRIG  'STRIG'
+            .byte $32 ; CDPEEK  'DPEEK'
+            .byte $2A ; CIAND   '&'
+            .byte $2A ; CIOR    '!'
+            .byte $32 ; CINSTR  'INSTR'
+            .byte $32 ; CINKEYP 'INKEY$'
+            .byte $2A ; CEXOR   'EXOR'
+            .byte $32 ; CHEXP   'HEX$'
+            .byte $32 ; CDEC    'DEC'
+            .byte $28 ; CFDIV   'DIV'
+            .byte $32 ; CFRAC   'FRAC'
+            .byte $32 ; CTIMEP  'TIME$'
+            .byte $32 ; CTIME   'TIME'
+            .byte $28 ; CMOD    'MOD'
+            .byte $00 ; CEXEC   'EXEC'
+            .byte $32 ; CRNDU   'RND'
+            .byte $32 ; CRAND   'RAND'
+            .byte $32 ; CTRUNC  'TRUNC'
+            .byte $32 ; CN0     '%0'
+            .byte $32 ; CN1     '%1'
+            .byte $32 ; CN2     '%2'
+            .byte $32 ; CN3     '%3'
+            .byte $00 ; CGOG    'GO#'
+            .byte $32 ; CUINSTR 'UINSTR'
+            .byte $32 ; CERR    'ERR'
+            .byte $32 ; CERL    'ERL'
+
+OPLTAB      ; Table with left operator precedence
+            .byte $00 ; CDQ     '"'
+            .byte $00 ; CSOE
+            .byte $00 ; CCOM    ','
+            .byte $00 ; CDOL    '$'
+            .byte $00 ; CEOS    ':'
+            .byte $00 ; CSC     ';'
+            .byte $00 ; CCR     CR
+            .byte $00 ; CGTO    'GOTO'
+            .byte $00 ; CGS     'GOSUB'
+            .byte $00 ; CTO     'TO'
+            .byte $00 ; CSTEP   'STEP'
+            .byte $00 ; CTHEN   'THEN'
+            .byte $00 ; CPND    '#'
+            .byte $20 ; CLE     '<='
+            .byte $20 ; CNE     '<>'
+            .byte $20 ; CGE     '>='
+            .byte $20 ; CLT     '<'
+            .byte $20 ; CGT     '>'
+            .byte $20 ; CEQ     '='
+            .byte $2C ; CEXP    '^'
+            .byte $28 ; CMUL    '*'
+            .byte $22 ; CPLUS   '+'
+            .byte $22 ; CMINUS  '-'
+            .byte $28 ; CDIV    '/'
+            .byte $1D ; CNOT    'NOT'
+            .byte $1A ; COR     'OR'
+            .byte $1C ; CAND    'AND'
+            .byte $02 ; CLPRN   '('
+            .byte $30 ; CRPRN   ')'
+            .byte $01 ; CAASN   '='
+            .byte $01 ; CSASN   '='
+            .byte $30 ; CSLE    '<='
+            .byte $30 ; CSNE    '<>'
+            .byte $30 ; CSGE    '>='
+            .byte $30 ; CSLT    '<'
+            .byte $30 ; CSGT    '>'
+            .byte $30 ; CSEQ    '='
+            .byte $2D ; CUPLUS  '+'
+            .byte $2D ; CUMINUS '-'
+            .byte $02 ; CSLPRN  '('
+            .byte $02 ; CALPRN  '('
+            .byte $02 ; CDLPRN  '('
+            .byte $02 ; CFLPRN  '('
+            .byte $02 ; CDSLPRN '('
+            .byte $03 ; CACOM   ','
+            .byte $02 ; CSTR    'STR$'
+            .byte $02 ; CCHR    'CHR$'
+            .byte $02 ; CUSR    'USR'
+            .byte $02 ; CASC    'ASC'
+            .byte $02 ; CVAL    'VAL'
+            .byte $02 ; CLEN    'LEN'
+            .byte $02 ; CADR    'ADR'
+            .byte $02 ; CATN    'ATN'
+            .byte $02 ; CCOS    'COS'
+            .byte $02 ; CPEEK   'PEEK'
+            .byte $02 ; CSIN    'SIN'
+            .byte $02 ; CRND    'RND'
+            .byte $02 ; CFRE    'FRE'
+            .byte $02 ; CFEXP   'EXP'
+            .byte $02 ; CLOG    'LOG'
+            .byte $02 ; CCLOG   'CLOG'
+            .byte $02 ; CSQR    'SQR'
+            .byte $02 ; CSGN    'SGN'
+            .byte $02 ; CABS    'ABS'
+            .byte $02 ; CINT    'INT'
+            .byte $02 ; CPADDLE 'PADDLE'
+            .byte $02 ; CSTICK  'STICK'
+            .byte $02 ; CPTRIG  'PTRIG'
+            .byte $02 ; CSTRIG  'STRIG'
+            .byte $02 ; CDPEEK  'DPEEK'
+            .byte $2A ; CIAND   '&'
+            .byte $2A ; CIOR    '!'
+            .byte $02 ; CINSTR  'INSTR'
+            .byte $32 ; CINKEYP 'INKEY$'
+            .byte $2A ; CEXOR   'EXOR'
+            .byte $02 ; CHEXP   'HEX$'
+            .byte $02 ; CDEC    'DEC'
+            .byte $28 ; CFDIV   'DIV'
+            .byte $02 ; CFRAC   'FRAC'
+            .byte $32 ; CTIMEP  'TIME$'
+            .byte $32 ; CTIME   'TIME'
+            .byte $28 ; CMOD    'MOD'
+            .byte $00 ; CEXEC   'EXEC'
+            .byte $32 ; CRNDU   'RND'
+            .byte $02 ; CRAND   'RAND'
+            .byte $02 ; CTRUNC  'TRUNC'
+            .byte $32 ; CN0     '%0'
+            .byte $32 ; CN1     '%1'
+            .byte $32 ; CN2     '%2'
+            .byte $32 ; CN3     '%3'
+            .byte $00 ; CGOG    'GO#'
+            .byte $02 ; CUINSTR 'UINSTR'
+            .byte $32 ; CERR    'ERR'
+            .byte $32 ; CERL    'ERL'
+
 B_CIOV      inc PORTB
             jsr CIOV
             dec PORTB
             cpy #$00
+
 ; Non executable statements, all point here
 X_REM
 X_DATA
@@ -3013,6 +3241,7 @@ L34A7       ldy STINDEX
             bcs L3459
 L34AE       jsr L34D5
             jmp L3459
+
 L34B4       jsr L3566
             cpx #CGTO
             beq L34C2
@@ -3105,6 +3334,7 @@ L3560       sec
 L3561       lda FR1
             ldy FR1+1
             rts
+
 L3566       inc STINDEX
 L3568       jsr GETTOK
             bcc L3568
@@ -4261,7 +4491,7 @@ X_PPUT      lda #ICPUTCHR
 X_PGET      lda #ICGETCHR
             sta IOCMD
             jsr CHKIOCHAN
-LC622       jsr LE56B
+LC622       jsr GETFP
             jsr LDDVX
             lda #$D4
             sta INBUFF
@@ -4465,10 +4695,10 @@ LC775       inc ARSLVL
 
 X_STRLPAREN lda COMCNT
             beq LC7AD
-            jsr LC80F
+            jsr POPINT_NZ
             sty L0098
             sta L0097
-LC7AD       jsr LC80F
+LC7AD       jsr POPINT_NZ
             sec
             sbc #$01
             sta L00F5
@@ -4517,14 +4747,14 @@ LC7F7       jsr PTRSTR
             sta FR0+1
             bit L00B1
             bpl LC80C
-LC80B       rts
+RTS_0B      rts
 
 LC80C       jmp X_PUSHVAL
 
-LC80F       jsr X_POPINT
-            bne LC80B
+POPINT_NZ   jsr X_POPINT
+            bne RTS_0B
             tax
-            bne LC80B
+            bne RTS_0B
 LC817       lda #$05
             jmp ERROR
 
@@ -4935,7 +5165,8 @@ LCAF1       lda #$40
             sta L00A6
             inc CIX
             jmp LCB42
-LCAFA       ldy CIX
+
+INP_COMMA   ldy CIX
             lda (INBUFF),Y
             cmp #','
             clc
@@ -4976,7 +5207,7 @@ LCB42       jsr GETTOK
             bmi LCB6E
             jsr T_AFP
             bcs LCB65
-            jsr LCAFA
+            jsr INP_COMMA
             bne LCB65
             jsr RTNVAR
             jmp LCBAC
@@ -5027,7 +5258,7 @@ LCBAC       bit L00A6
             inx
             cpx NXTSTD
             bcs LCBC8
-            jsr LCAFA
+            jsr INP_COMMA
             bcc LCBD8
             jmp LCABE
 LCBC1       ldx STINDEX
@@ -5038,7 +5269,7 @@ LCBC8       jsr T_LDBUFA
             lda #$00
             sta L00B4
             rts
-LCBD0       jsr LCAFA
+LCBD0       jsr INP_COMMA
             bcc LCBD8
             jmp LCB33
 LCBD8       inc CIX
@@ -5643,12 +5874,12 @@ X_RAD       lda #$00
             sta DEGFLAG
             rts
 
-LDC5F       jsr X_POPINT
+POP2INT     jsr X_POPINT
             sta FR1
             sty FR1+1
             jmp X_POPINT
 
-X_BITAND    jsr LDC5F
+X_BITAND    jsr POP2INT
             tya
             and FR1+1
             tay
@@ -5656,7 +5887,7 @@ X_BITAND    jsr LDC5F
             and FR0
             jmp X_RET_AY
 
-X_BITOR     jsr LDC5F
+X_BITOR     jsr POP2INT
             tya
             ora FR1+1
             tay
@@ -5664,7 +5895,7 @@ X_BITOR     jsr LDC5F
             ora FR0
             jmp X_RET_AY
 
-X_EXOR      jsr LDC5F
+X_EXOR      jsr POP2INT
             tya
             eor FR1+1
             tay
@@ -5711,11 +5942,11 @@ X_MOD       jsr STK_DUP2
             jsr X_FMUL
             jmp X_FSUB
 
-X_ERR       lda L00C3
+X_ERR       lda ERRSAVE
             jmp X_RET_A
 
-X_ERL       lda L00BA
-            ldy L00BB
+X_ERL       lda STOPLN
+            ldy STOPLN+1
             jmp X_RET_AY
 
 LDCF0       inc L00C9
@@ -6354,7 +6585,7 @@ X_PUSHVAL   inc ARSLVL
             sta VARSTK0,Y
             rts
 
-LE56B       jsr EXEXPR
+GETFP       jsr EXEXPR
 X_POPVAL    ldy ARSLVL
 POPVALY     dec ARSLVL
             lda ARGSTK5,Y
@@ -8155,7 +8386,7 @@ LF3E8       lda TEMPA
             sta TOPRSTK+1
 LF3F0       lda #$0D
             jsr REXPAND
-            jsr LE56B
+            jsr GETFP
             ldy #$00
             jsr LF680
             jsr T_FLD1
@@ -8163,7 +8394,7 @@ LF3F0       lda #$0D
             inx
             cpx NXTSTD
             bcs LF40A
-            jsr LE56B
+            jsr GETFP
 LF40A       ldy #$06
             jsr LF680
             lda F_FOR
@@ -8366,7 +8597,7 @@ X_CLR       jsr ZVAR
             sta DATAD
             rts
 
-X_END       jsr LF5C4
+X_END       jsr SAVSTOPLN
 LF56D       jmp LE66B
 
 X_IF        jsr EXEXPR
@@ -8407,7 +8638,7 @@ CHK_BRK     lda #$80
             beq X_STOP
             jmp ERROR
 
-X_STOP      jsr LF5C4
+X_STOP      jsr SAVSTOPLN
             jsr PUTEOL
             lda #<STOPPED
             sta L0095
@@ -8415,13 +8646,15 @@ X_STOP      jsr LF5C4
             sta L0096
             jsr P_STRB
             jmp LF92E
-LF5C4       ldy #$01
+
+            ; Save stopped line number
+SAVSTOPLN   ldy #$01
             lda (STMCUR),Y
             bmi LF5D1
-            sta L00BB
+            sta STOPLN+1
             dey
             lda (STMCUR),Y
-            sta L00BA
+            sta STOPLN
 LF5D1       lda #$00
             sta L00B4
             sta L00B5
@@ -8431,9 +8664,9 @@ STOPPED     .cb 'STOPPED '
 X_CONT      ldy #$01
             lda (STMCUR),Y
             bpl LF5D1
-            lda L00BA
+            lda STOPLN
             sta TSLNUM
-            lda L00BB
+            lda STOPLN+1
             sta TSLNUM+1
             jsr SEARCHLINE
             ldy #$02
@@ -8449,13 +8682,13 @@ X_TRAP      jsr GT_LBLNUM
             rts
 
 X_ON        sty L00B3
-            jsr LE56B
+            jsr GETFP
             jsr T_FPI
-            bcs LF62A
+            bcs RTS_2A
             lda FR0+1
-            bne LF62A
+            bne RTS_2A
             lda FR0
-            beq LF62A
+            beq RTS_2A
             sta L00B9
             ldy STINDEX
             dey
@@ -8467,7 +8700,7 @@ LF61E       dec L00B9
             cpx #CCOM
             beq LF61E
             pla
-LF62A       rts
+RTS_2A      rts
 LF62B       pla
             cmp #CEXEC
             beq LF649
@@ -8571,8 +8804,8 @@ LF6CF       sta (L00F5),Y
             bne LF6B7
 LF6E4       jmp GEN_LNHASH
 LF6E7       ldy #$00
-            sty L00BA
-            sty L00BB
+            sty STOPLN
+            sty STOPLN+1
             sty L00B9
             sty DEGFLAG
             sty DATAD
@@ -8853,14 +9086,14 @@ ERROR       sta L00B9
 LF8DE       lda #$00
             cld
             sta DSPFLG
-            jsr LF5C4
+            jsr SAVSTOPLN
             ldy L00BD
             bmi ERR_NOTRAP
             lda L00BC
             ldx #$80
             stx L00BD
             ldx L00B9
-            stx L00C3
+            stx ERRSAVE
             ldx #$00
             stx L00B9
             jmp GTO_LINE
@@ -9062,10 +9295,10 @@ LFB4D       tax
             lsr
             lsr
             lsr
-            jsr LFB58
+            jsr TM_GETDIG
             txa
             and #$0F
-LFB58       ora #'0'
+TM_GETDIG   ora #'0'
             cmp #'9'+1
             bcc LFB60
             adc #'A'-'9' - 2
@@ -9082,36 +9315,36 @@ X_TIMESET   jsr EXEXPR
             sty CIX
             sty FR1+1
             sty FR1+2
-            jsr LFBC4
-            cmp #$18
-            bcs LFBBE
+            jsr TS_GET2DIG      ; Get HOURS
+            cmp #24
+            bcs TS_ERR18
             sta FR1
-            jsr LFC13
-            jsr LFBC4
-            cmp #$3C
-            bcs LFBBE
-            jsr LFBDE
-            jsr LFC13
-            jsr LFBC4
-            cmp #$3C
-            bcs LFBBE
-            jsr LFBDE
-            jsr LFBF2
-            jsr LFBEC
+            jsr TS_MUL60
+            jsr TS_GET2DIG      ; Get MINUTES
+            cmp #60
+            bcs TS_ERR18
+            jsr TS_ADD
+            jsr TS_MUL60
+            jsr TS_GET2DIG      ; Get SECONDS
+            cmp #60
+            bcs TS_ERR18
+            jsr TS_ADD
+            jsr TS_MUL5         ; Multiply by 5*10 = 50 (PAL)
+            jsr TS_MUL10
             lda FR1
             ldy FR1+1
             ldx FR1+2
-LFBB1       sta RTCLOK+2
+LFBB1       sta RTCLOK+2        ; Write and retry until stable
             sty RTCLOK+1
             stx RTCLOK
             cmp RTCLOK+2
             bne LFBB1
             jmp RSTSEOL
-LFBBE       jsr RSTSEOL
+TS_ERR18    jsr RSTSEOL
             jmp ERR_18
-LFBC4       jsr T_GETDIGIT
+TS_GET2DIG  jsr T_GETDIGIT
             inc CIX
-            bcs LFBBE
+            bcs TS_ERR18
             asl
             sta FR1+3
             asl
@@ -9120,10 +9353,10 @@ LFBC4       jsr T_GETDIGIT
             sta FR1+3
             jsr T_GETDIGIT
             inc CIX
-            bcs LFBBE
+            bcs TS_ERR18
             adc FR1+3
             rts
-LFBDE       clc
+TS_ADD      clc
             adc FR1
             sta FR1
             bcc LFBEB
@@ -9131,18 +9364,18 @@ LFBDE       clc
             bne LFBEB
             inc FR1+2
 LFBEB       rts
-LFBEC       asl FR1
+TS_MUL10    asl FR1
             rol FR1+1
-            rol FR1+2
-LFBF2       ldy FR1+2
+            rol FR1+2   ; *2
+TS_MUL5     ldy FR1+2
             lda FR1
             ldx FR1+1
             asl FR1
             rol FR1+1
-            rol FR1+2
+            rol FR1+2   ; *4
             asl FR1
             rol FR1+1
-            rol FR1+2
+            rol FR1+2   ; *8
             adc FR1
             sta FR1
             txa
@@ -9150,32 +9383,34 @@ LFBF2       ldy FR1+2
             sta FR1+1
             tya
             adc FR1+2
-            sta FR1+2
+            sta FR1+2   ; *10
             rts
-LFC13       jsr LFBEC
+TS_MUL60    jsr TS_MUL10; *10
             ldy FR1+2
             lda FR1
             ldx FR1+1
             asl FR1
             rol FR1+1
-            rol FR1+2
+            rol FR1+2   ; *20
             adc FR1
             sta FR1
             txa
             adc FR1+1
             sta FR1+1
             tya
-            adc FR1+2
+            adc FR1+2   ; *30
             asl FR1
             rol FR1+1
             rol
-            sta FR1+2
-            rts
-LFC36       rts
+            sta FR1+2   ; *60
+.if .not .def tb_fixes
+            rts         ; Remove extra RTS
+.endif
+TS_RTS      rts
 
 X_TEXT      jsr GET2INT
             sta L0099
-            bne LFC36
+            bne TS_RTS
             jsr EXEXPR
             ldx ARSLVL
             lda VARSTK0,X
@@ -9184,7 +9419,7 @@ X_TEXT      jsr GET2INT
 LFC4B       jsr X_POPSTR
 LFC4E       lda FR0+2
             ora FR0+3
-            beq LFC36
+            beq TS_RTS
             ldy #$00
             sty L00DB
             sty L00DC
@@ -9202,7 +9437,7 @@ LFC60       jsr ATA2SCR
             adc CHBAS
             sta L00A3
             jsr PREPLOT
-            bcs LFC36
+            bcs TS_RTS
 LFC77       ldy #$08
             sty L00DD
             ldy L00DC
