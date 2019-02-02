@@ -2621,7 +2621,7 @@ L2F87       lda #$0A
             sta FR0
             lsr L00F1
             bcc L2FAC
-            jsr L329B
+            jsr FMUL10
 L2FAC       asl L00F0
             bcc L2FBA
             jsr T_FMOVE
@@ -2679,7 +2679,7 @@ L2FF4       sta L00F0
             and #$F0
             beq L3010
             inc L00F1
-            jsr L32A3
+            jsr FDIV10
 L3010       ldx #<SQR10
             ldy #>SQR10
             inc PORTB
@@ -2917,7 +2917,7 @@ L31F4       lda FR0
             jsr T_FDIV
             jsr LD1FPSCR1
             jsr T_FSUB
-            jsr L324F
+            jsr FPHALF
             lda FR0
             beq L3234
             jsr LD1FPSCR1
@@ -2935,11 +2935,13 @@ L3237       lda L00F1
             sta FR0
             lsr L00F1
             bcc L324A
-            jsr L329B
+            jsr FMUL10
 L324A       clc
             rts
+
 L324C       jmp T_ZFR0
-L324F       lda FR0
+
+FPHALF      lda FR0
             and #$7F
             cmp #$0F
             bcc L324C
@@ -2970,7 +2972,7 @@ L3260       lda FR0+5
             bne L3260
             cld
             txa
-            beq L32A3
+            beq FDIV10
             lda FR0+4
             sta FR0+5
             lda FR0+3
@@ -2980,11 +2982,11 @@ L3260       lda FR0+5
             lda FR0+1
             sta FR0+2
             stx FR0+1
-L329B       lda FR0+1
+FMUL10      lda FR0+1
             cmp #$10
             bcc L32D2
-            inc FR0
-L32A3       lda FR0+1
+            inc FR0     ; Multiply by 100, then divide by 10
+FDIV10      lda FR0+1
             cmp #$10
             bcc L32D0
             lsr
@@ -3009,7 +3011,7 @@ L32A3       lda FR0+1
             ror FR0+5
             sta FR0+1
             rts
-L32D0       dec FR0
+L32D0       dec FR0     ; Divide by 100, then multiply by 10
 L32D2       lda #$00
             asl FR0+5
             rol FR0+4
@@ -3142,35 +3144,37 @@ ERR_3H      jmp ERR_3
 X_RENUM     jsr X_GS
             jsr GET3INT
             sta L00A2
-            sty L00A3
+            sty L00A3           ; $99/$9A: starting line,
+                                ; $9B/$9C: new number,
+                                ; $A2/$A3: increment
             ora L00A3
-            beq ERR_3H
+            beq ERR_3H          ; Increment should be > 0
             tya
             ora L009A
             ora L009C
-            bmi ERR_3H
+            bmi ERR_3H          ; All parameters should be < 32768
             lda L0099
             sta TSLNUM
             lda L009A
             sta TSLNUM+1
-            jsr SEARCHLINE
+            jsr SEARCHLINE      ; Search starting line
             lda STMCUR
-            sta FR1+2
+            sta FR1+2           ; Store in FR1+2
             lda STMCUR+1
             sta FR1+3
-            lda #$80
+            lda #$80            ; Store 32768 into FR0 to search...
             sta FR0+1
             asl
             sta FR0
-            jsr L350E
-            bmi ERR_3H
-            lda STMTAB+1
+            jsr REN_NEWLN       ; ...new line number of last line to renumber
+            bmi ERR_3H          ; > 32767, error
+            lda STMTAB+1        ; Now, go through the whole program
             sta STMCUR+1
             lda STMTAB
-L341E       sta STMCUR
+L341E       sta STMCUR          ; First pass, change all line references
             ldy #$01
             lda (STMCUR),Y
-            bmi L346A
+            bmi L346A           ; Reached last line
             iny
             lda (STMCUR),Y
             sta LLNGTH
@@ -3179,7 +3183,7 @@ L342C       lda (STMCUR),Y
             sta NXTSTD
             iny
             sty STINDEX
-            lda (STMCUR),Y
+            lda (STMCUR),Y      ; Search statements that needs change
             cmp #TOK_GOTO
             beq L3443
             cmp #TOK_GO_TO
@@ -3187,33 +3191,34 @@ L342C       lda (STMCUR),Y
             cmp #TOK_GOSUB
             beq L3443
             cmp #TOK_TRAP
-L3443       beq L34AE
+L3443       beq REN_CHG1
             cmp #TOK_ON
-            beq L34B4
+            beq REN_CHGON
             cmp #TOK_RESTORE
-            beq L34A7
+            beq REN_CHGOPT
             cmp #TOK_IF
-            beq L349E
+            beq REN_CHGIF
             cmp #TOK_LIST
-            beq L34C0
+            beq REN_CHGLST
             cmp #TOK_DEL
-            beq L34C0
-L3459       ldy NXTSTD
+            beq REN_CHGLST
+REN_NXTST   ldy NXTSTD
             cpy LLNGTH
-            bcc L342C
+            bcc L342C           ; Next statement in line
             clc
             lda STMCUR
             adc LLNGTH
             bcc L341E
             inc STMCUR+1
             bcs L341E
-L346A       lda FR1+3
+
+L346A       lda FR1+3           ; Complete, now a second pass to change actual line numbers
             sta STMCUR+1
             lda FR1+2
 L3470       sta STMCUR
             ldy #$01
             lda (STMCUR),Y
-            bmi L3498
+            bmi REN_END
             lda L009C
             sta (STMCUR),Y
             dey
@@ -3231,38 +3236,40 @@ L3470       sta STMCUR
             bcc L3470
             inc STMCUR+1
             bcs L3470
-L3498       jsr GEN_LNHASH
+
+REN_END     jsr GEN_LNHASH
             jmp POP_RETURN
 
-L349E       jsr SKIPTOK
+REN_CHGIF   jsr SKIPTOK
             cpx #CTHEN
-            bne L3459
+            bne REN_NXTST
             dec STINDEX
-L34A7       ldy STINDEX
+REN_CHGOPT  ldy STINDEX
             iny
             cpy NXTSTD
-            bcs L3459
-L34AE       jsr L34D5
-            jmp L3459
+            bcs REN_NXTST
+REN_CHG1    jsr REN_CHGNXT
+            jmp REN_NXTST
 
-L34B4       jsr SKIPTOK
+REN_CHGON   jsr SKIPTOK
             cpx #CGTO
             beq L34C2
             cpx #CGS
-            bne L3459
+            bne REN_NXTST
             .byte $2C   ; Skip 2 bytes
-L34C0       inc STINDEX
+REN_CHGLST  inc STINDEX
 L34C2       lda STINDEX
             cmp NXTSTD
-            bcs L3459
+            bcs REN_NXTST
             pha
-            jsr L34D7
+            jsr REN_CHGNUM
             pla
             sta STINDEX
             jsr SKPCTOK
             jmp L34C2
-L34D5       inc STINDEX
-L34D7       ldy STINDEX
+
+REN_CHGNXT  inc STINDEX
+REN_CHGNUM  ldy STINDEX
             sty L00DC
             lda (STMCUR),Y
             beq L350D
@@ -3273,10 +3280,10 @@ L34D7       ldy STINDEX
             lda FR0+1
             bmi L350D
             bcs L350D
-            jsr L350E
+            jsr REN_NEWLN
             php
             bcs L34F9
-            sta FR0
+            sta FR0             ; Ok, get new number
             sty FR0+1
 L34F9       jsr T_IFP
             asl FR0
@@ -3290,7 +3297,9 @@ L3505       lda FR0,X
             dex
             bpl L3505
 L350D       rts
-L350E       lda FR0
+
+REN_NEWLN   ; Calculate new line number of old line number at FR0
+            lda FR0
             cmp L0099
             lda FR0+1
             sbc L009A
@@ -3302,20 +3311,20 @@ L351D       lda FR1+2
             sta L00DA
             lda FR1+3
             sta L00DB
-            lda L009B
+            lda L009B           ; Store new line number in FR1
             sta FR1
             lda L009C
 L352B       sta FR1+1
             ldy #$01
-            lda (L00DA),Y
-            bmi L3560
+            lda (L00DA),Y       ; Read current line number
+            bmi L3560           ; Not a program line
             cmp FR0+1
             bne L353C
             dey
             lda (L00DA),Y
             cmp FR0
-L353C       bcs L355D
-            ldy #$02
+L353C       bcs L355D           ; Line > line to search, found
+            ldy #$02            ; Go to next line
             lda (L00DA),Y
             adc L00DA
             sta L00DA
@@ -3323,18 +3332,19 @@ L353C       bcs L355D
             inc L00DB
 L354A       dey
             lda (L00DA),Y
-            bmi L3560
-            clc
+            bmi L3560           ; Not a program line
+            clc                 ; Increment new line number
             lda FR1
             adc L00A2
             sta FR1
             lda FR1+1
             adc L00A3
-            jmp L352B
+            jmp L352B           ; Loop
+
 L355D       clc
             beq L3561
 L3560       sec
-L3561       lda FR1
+L3561       lda FR1             ; Return new line number
             ldy FR1+1
             rts
 
@@ -6331,7 +6341,7 @@ LDF8B       sta SCRADR
             ldx CIX
             ldy #$00
             lda (SCRADR),Y
-            beq LDFBC
+            beq SRCNF   ; Not found
 LDF95       lda LBUFF,X
             and #$7F
             inx
@@ -6340,7 +6350,7 @@ LDF95       lda LBUFF,X
             iny
             bne LDF95
 LDFA2       asl
-            beq LDFBA
+            beq SRCFND  ; Found
             bcs LDFAD
 LDFA7       iny
             lda (SCRADR),Y
@@ -6353,9 +6363,9 @@ LDFAD       inc L00AF
             bcc LDF8B
             inc SCRADR+1
             bcs LDF8B
-LDFBA       clc
+SRCFND      clc ; Found
             rts
-LDFBC       sec
+SRCNF       sec ; Not found
             rts
 ERR_04      lda #$04
             jmp SERROR
@@ -6368,18 +6378,18 @@ LDFC9       sta SCRADR
             ldx CIX
             ldy #$01
             lda (SCRADR),Y
-            beq LDFBC
+            beq SRCNF
 LDFD3       lda LBUFF,X
             and #$7F
             inx
             cmp #$2E
-            beq LDFBA
+            beq SRCFND  ; Found
             eor (SCRADR),Y
             bne LDFE4
             iny
             bne LDFD3
 LDFE4       asl
-            beq LDFBA
+            beq SRCFND  ; Found
             bcs LDFEE
 LDFE9       iny
             lda (SCRADR),Y
