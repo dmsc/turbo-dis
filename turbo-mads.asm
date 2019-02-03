@@ -602,9 +602,9 @@ L0099       = $0099
 L009A       = $009A
 L009B       = $009B
 L009C       = $009C
-L009D       = $009D
-L009E       = $009E
 
+CPC         = $9D
+WVVTPT      = $9D
 LLNGTH      = $9F
 TSLNUM      = $A0
 
@@ -618,7 +618,10 @@ L00A6       = $00A6
 NXTSTD      = $00A7
 STINDEX     = $00A8
 OPSTKX      = $00A9
-ARSLVL      = $00AA
+
+ARSLVL      = $AA
+SRCSKP      = $AA
+
 EXSVOP      = $00AB
 TVSCIX      = $00AC
 EXSVPR      = $00AC
@@ -643,12 +646,8 @@ DATALN      = $B7
 
 ERRNUM      = $B9
 INDENTLVL   = $B9
-
-STOPLN      = $00BA
-
-L00BC       = $00BC
-L00BD       = $00BD
-
+STOPLN      = $BA
+TRAPLN      = $BC
 SAVCUR      = $BE       ; Save current line number
 
 IOCMD       = $C0
@@ -683,19 +682,18 @@ L00EE       = $00EE
 L00EF       = $00EF
 L00F0       = $00F0
 L00F1       = $00F1
-L00F5       = $00F5
-L00F6       = $00F6
-L00F7       = $00F7
-L00F8       = $00F8
-L00F9       = $00F9
-L00FA       = $00FA
+
+ZTEMP1      = $F5
+ZTEMP4      = $F7
+ZTEMP3      = $F9
+
 DEGFLAG     = $00FB
 L00FC       = $00FC
 L00FD       = $00FD
-L0480       = $0480
-L0481       = $0481
-L0482       = $0482
-L0483       = $0483
+
+SIX         = $0480
+SOX         = $0481
+SPC         = $0482
 
 LBUFF       = $0580
 
@@ -2092,7 +2090,7 @@ T_GETDIGIT  ldy CIX
 
 T_IFP       ldy FR0
             lda FR0+1
-            sta L00F7
+            sta ZTEMP4
             jsr T_ZFR0
             sed
             tya
@@ -2101,39 +2099,39 @@ T_IFP       ldy FR0
             lsr
             lsr
             lsr
-            sta L00F8
+            sta ZTEMP4+1
             tya
             and #$07
             ldy #$00
             bcc L2BF8
             adc #$0007
-L2BF8       lsr L00F8
+L2BF8       lsr ZTEMP4+1
             bcc L2BFE
             adc #$0015
-L2BFE       lsr L00F8
+L2BFE       lsr ZTEMP4+1
             bcc L2C04
             adc #$0031
-L2C04       lsr L00F8
+L2C04       lsr ZTEMP4+1
             bcc L2C0D
             adc #$0063
             bcc L2C0D
             iny
-L2C0D       lsr L00F8
+L2C0D       lsr ZTEMP4+1
             bcc L2C17
             adc #<$0127
             iny
             bcc L2C17
             iny
-L2C17       ldx L00F7
+L2C17       ldx ZTEMP4
             beq L2C8A
-            lsr L00F7
+            lsr ZTEMP4
             bcc L2C26
             adc #<$0255
             iny
             iny
             bcc L2C26
             iny
-L2C26       lsr L00F7
+L2C26       lsr ZTEMP4
             bcc L2C32
             adc #<$0511
             tax
@@ -2141,7 +2139,7 @@ L2C26       lsr L00F7
             adc #>$0511
             tay
             txa
-L2C32       lsr L00F7
+L2C32       lsr ZTEMP4
             bcc L2C3E
             adc #<$1023
             tax
@@ -2149,7 +2147,7 @@ L2C32       lsr L00F7
             adc #>$1023
             tay
             txa
-L2C3E       lsr L00F7
+L2C3E       lsr ZTEMP4
             bcc L2C4A
             adc #<$2047
             tax
@@ -2157,7 +2155,7 @@ L2C3E       lsr L00F7
             adc #>$2047
             tay
             txa
-L2C4A       lsr L00F7
+L2C4A       lsr ZTEMP4
             bcc L2C56
             adc #<$4095
             tax
@@ -2165,7 +2163,7 @@ L2C4A       lsr L00F7
             adc #>$4095
             tay
             txa
-L2C56       lsr L00F7
+L2C56       lsr ZTEMP4
             bcc L2C66
             adc #<$8191
             tax
@@ -2175,7 +2173,7 @@ L2C56       lsr L00F7
             txa
             bcc L2C66
             inc FR0+1
-L2C66       lsr L00F7
+L2C66       lsr ZTEMP4
             bcc L2C78
             adc #<$6383 ; $16383
             tax
@@ -2186,7 +2184,7 @@ L2C66       lsr L00F7
             adc #$01    ; $16383
             sta FR0+1
             txa
-L2C78       lsr L00F7
+L2C78       lsr ZTEMP4
             bcc L2C8A
             adc #<$2767 ; $32737
             tax
@@ -2213,11 +2211,11 @@ T_FSUB      lda FR1
 T_FADD      lda FR1
             and #$7F
             beq RET_CLC2
-            sta L00F7
+            sta ZTEMP4
             lda FR0
             and #$7F
             sec
-            sbc L00F7
+            sbc ZTEMP4
             bcs L2CE1
             lda FR0
             ldy FR1
@@ -2245,13 +2243,13 @@ T_FADD      lda FR1
             sty FR0+5
             jmp T_FADD
 L2CE1       tay
-            beq L2D2F
+            beq FADD_OK
             dey
-            beq L2D1D
+            beq FADD_M1
             dey
-            beq L2D0C
+            beq FADD_M2
             dey
-            beq L2CFD
+            beq FADD_M3
             dey
             bne RET_CLC2
             lda FR1+1
@@ -2259,23 +2257,23 @@ L2CE1       tay
             sty FR1+4
             sty FR1+3
             sty FR1+2
-            jmp L2D2D
-L2CFD       lda FR1+2
+            jmp FADD_MOK
+FADD_M3     lda FR1+2
             sta FR1+5
             lda FR1+1
             sta FR1+4
             sty FR1+3
             sty FR1+2
-            jmp L2D2D
-L2D0C       lda FR1+3
+            jmp FADD_MOK
+FADD_M2     lda FR1+3
             sta FR1+5
             lda FR1+2
             sta FR1+4
             lda FR1+1
             sta FR1+3
             sty FR1+2
-            jmp L2D2D
-L2D1D       lda FR1+4
+            jmp FADD_MOK
+FADD_M1     lda FR1+4
             sta FR1+5
             lda FR1+3
             sta FR1+4
@@ -2283,8 +2281,8 @@ L2D1D       lda FR1+4
             sta FR1+3
             lda FR1+1
             sta FR1+2
-L2D2D       sty FR1+1
-L2D2F       sed
+FADD_MOK    sty FR1+1
+FADD_OK     sed
             lda FR0
             eor FR1
             bmi L2D70
@@ -2364,40 +2362,40 @@ L2DBA       cld
             ldy FR0
             beq L2E2C
             lda FR0+1
-            bne L2E1F
+            bne NORM_MOK
             dey
             lda FR0+2
-            bne L2E0F
+            bne NORM_M1
             dey
             lda FR0+3
-            bne L2DFD
+            bne NORM_M2
             dey
             lda FR0+4
-            bne L2DED
+            bne NORM_M3
             dey
             lda FR0+5
-            bne L2DDF
+            bne NORM_M4
             dey
             txa
             beq L2E2C
             sta FR0+1
-            bne L2E1F
-L2DDF       sta FR0+1
+            bne NORM_MOK
+NORM_M4     sta FR0+1
             stx FR0+2
             lda #$00
             sta FR0+5
             sta FR0+4
             sta FR0+3
-            beq L2E1F
-L2DED       sta FR0+1
+            beq NORM_MOK
+NORM_M3     sta FR0+1
             lda FR0+5
             sta FR0+2
             stx FR0+3
             lda #$00
             sta FR0+5
             sta FR0+4
-            beq L2E1F
-L2DFD       sta FR0+1
+            beq NORM_MOK
+NORM_M2     sta FR0+1
             lda FR0+4
             sta FR0+2
             lda FR0+5
@@ -2405,8 +2403,8 @@ L2DFD       sta FR0+1
             stx FR0+4
             lda #$00
             sta FR0+5
-            beq L2E1F
-L2E0F       sta FR0+1
+            beq NORM_MOK
+NORM_M1     sta FR0+1
             lda FR0+3
             sta FR0+2
             lda FR0+4
@@ -2414,7 +2412,7 @@ L2E0F       sta FR0+1
             lda FR0+5
             sta FR0+4
             stx FR0+5
-L2E1F       sty FR0
+NORM_MOK    sty FR0
             tya
             and #$7F
             cmp #$71
@@ -3272,14 +3270,14 @@ REN_CHGNXT  inc STINDEX
 REN_CHGNUM  ldy STINDEX
             sty L00DC
             lda (STMCUR),Y
-            beq L350D
+            beq REN_CXIT
             cmp #$0F
-            bcs L350D
+            bcs REN_CXIT
             jsr GETTOK
             jsr T_FPI
             lda FR0+1
-            bmi L350D
-            bcs L350D
+            bmi REN_CXIT
+            bcs REN_CXIT
             jsr REN_NEWLN
             php
             bcs L34F9
@@ -3296,7 +3294,7 @@ L3505       lda FR0,X
             sta (STMCUR),Y
             dex
             bpl L3505
-L350D       rts
+REN_CXIT    rts
 
 REN_NEWLN   ; Calculate new line number of old line number at FR0
             lda FR0
@@ -3688,9 +3686,9 @@ LC04C       jsr PUTEOL
             beq DUMP_BRK
             lda ERRNUM
             jsr GETVAR
-            lda L009D
+            lda WVVTPT
             cmp ENDVVT
-            lda L009E
+            lda WVVTPT+1
             sbc ENDVVT+1
             bcs DUMP_END
             lda ERRNUM
@@ -4536,22 +4534,22 @@ X_FPASIGN   ldy OPSTKX
             jsr VAR_PTR
             ldy #$02
             lda ARGSTK0+1,X
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda ARGSTK1+1,X
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda ARGSTK2+1,X
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda ARGSTK3+1,X
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda ARGSTK4+1,X
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda ARGSTK5+1,X
-            sta (L009D),Y
+            sta (WVVTPT),Y
             rts
 LC682       lda #$80
             sta L00B1
@@ -4566,36 +4564,36 @@ X_RPAREN    ldy OPSTKX
 X_DIMLPAREN lda #$40
             sta L00B1
 X_ARRLPAREN bit L00B1
-            bpl LC69E
+            bpl ALP1
             lda ARSLVL
             sta L00AF
             dec ARSLVL
-LC69E       lda COMCNT
+ALP1        lda COMCNT
             tay
-            beq LC6AA
+            beq ALP2
             dec COMCNT
             jsr X_POPINT
             bmi ERR_9_
-LC6AA       sty L0098
+ALP2        sty L0098
             sta L0097
             jsr X_POPINT
             bmi ERR_9_
-            sta L00F5
-            sty L00F6
+            sta ZTEMP1
+            sty ZTEMP1+1
             jsr X_POPVAL
             bit L00B1
-            bvc LC6C6
+            bvc ALP3
             lda #$00
             sta L00B1
             rts
 
 ERR_9_      jmp ERR_9
 
-LC6C6       lsr VTYPE
+ALP3        lsr VTYPE
             bcc ERR_9_
-            lda L00F5
+            lda ZTEMP1
             cmp FR0+2
-            lda L00F6
+            lda ZTEMP1+1
             sbc FR0+3
             bcs ERR_9_
             lda L0097
@@ -4604,50 +4602,50 @@ LC6C6       lsr VTYPE
             sbc FR0+5
             bcs ERR_9_
             lda FR0+5
-            bne LC6F2
+            bne AMUL1
             ldy FR0+5
             dey
-            bne LC6F2
-            lda L00F5
-            sta L00F7
-            lda L00F6
-            sta L00F8
-            jmp LC714
-LC6F2       ldy #$00
-            sty L00F7
-            sty L00F8
+            bne AMUL1
+            lda ZTEMP1
+            sta ZTEMP4
+            lda ZTEMP1+1
+            sta ZTEMP4+1
+            jmp AMUL6
+AMUL1       ldy #$00            ; Multiply index by DIM2
+            sty ZTEMP4
+            sty ZTEMP4+1
             ldy #$10
-LC6FA       lsr FR0+5
+AMUL1L      lsr FR0+5
             ror FR0+4
-            bcc LC70D
+            bcc AMUL1A
             clc
-            lda L00F7
-            adc L00F5
-            sta L00F7
-            lda L00F8
-            adc L00F6
-            sta L00F8
-LC70D       asl L00F5
-            rol L00F6
+            lda ZTEMP4
+            adc ZTEMP1
+            sta ZTEMP4
+            lda ZTEMP4+1
+            adc ZTEMP1+1
+            sta ZTEMP4+1
+AMUL1A      asl ZTEMP1
+            rol ZTEMP1+1
             dey
-            bne LC6FA
-LC714       clc
+            bne AMUL1L
+AMUL6       clc                 ; Multiply index by 6
             lda L0097
-            adc L00F7
-            sta L00F5
+            adc ZTEMP4
+            sta ZTEMP1
             lda L0098
-            adc L00F8
-            asl L00F5
+            adc ZTEMP4+1
+            asl ZTEMP1
             rol
-            sta L00F6
+            sta ZTEMP1+1
             tay
-            lda L00F5
+            lda ZTEMP1
             asl
-            rol L00F6
-            adc L00F5
+            rol ZTEMP1+1
+            adc ZTEMP1
             tax
             tya
-            adc L00F6
+            adc ZTEMP1+1
             tay
             txa
             adc FR0
@@ -4657,125 +4655,125 @@ LC714       clc
             tay
             txa
             adc STARP
-            sta L00F5
+            sta ZTEMP1
             tya
             adc STARP+1
-            sta L00F6
+            sta ZTEMP1+1
             bit L00B1
-            bpl LC775
+            bpl ALP8
             ldx L00AF
             stx ARSLVL
             dec ARSLVL
             ldy #$00
             sty L00B1
             lda ARGSTK0,X
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             iny
             lda ARGSTK1,X
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             iny
             lda ARGSTK2,X
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             iny
             lda ARGSTK3,X
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             iny
             lda ARGSTK4,X
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             iny
             lda ARGSTK5,X
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             rts
-LC775       inc ARSLVL
+ALP8        inc ARSLVL
             ldx ARSLVL
             ldy #$05
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             sta ARGSTK5,X
             dey
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             sta ARGSTK4,X
             dey
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             sta ARGSTK3,X
             dey
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             sta ARGSTK2,X
             dey
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             sta ARGSTK1,X
             dey
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             sta ARGSTK0,X
             lsr VARSTK0,X
             rts
 
 X_STRLPAREN lda COMCNT
-            beq LC7AD
+            beq XSLP2
             jsr POPINT_NZ
             sty L0098
             sta L0097
-LC7AD       jsr POPINT_NZ
+XSLP2       jsr POPINT_NZ
             sec
-            sbc #$01
-            sta L00F5
+            sbc #1
+            sta ZTEMP1
             tya
-            sbc #$00
-            sta L00F6
+            sbc #0
+            sta ZTEMP1+1
             jsr X_POPVAL
             lda L00B1
-            bpl LC7CC
+            bpl XSLP3
             ora COMCNT
             sta L00B1
             ldy FR0+5
             lda FR0+4
-            jmp LC7D0
-LC7CC       lda FR0+2
+            jmp XSLP4
+XSLP3       lda FR0+2
             ldy FR0+3
-LC7D0       ldx COMCNT
-            beq LC7E4
+XSLP4       ldx COMCNT
+            beq XSLP6
             dec COMCNT
             cpy L0098
-            bcc LC817
-            bne LC7E0
+            bcc XSLER
+            bne XSLP5
             cmp L0097
-            bcc LC817
-LC7E0       ldy L0098
+            bcc XSLER
+XSLP5       ldy L0098
             lda L0097
-LC7E4       sec
-            sbc L00F5
+XSLP6       sec
+            sbc ZTEMP1
             sta FR0+2
             tax
             tya
-            sbc L00F6
+            sbc ZTEMP1+1
             sta FR0+3
-            bcc LC817
+            bcc XSLER
             tay
-            bne LC7F7
+            bne XSLP7
             txa
-            beq LC817
-LC7F7       jsr PTRSTR
+            beq XSLER
+XSLP7       jsr PTRSTR
             clc
             lda FR0
-            adc L00F5
+            adc ZTEMP1
             sta FR0
             lda FR0+1
-            adc L00F6
+            adc ZTEMP1+1
             sta FR0+1
             bit L00B1
-            bpl LC80C
+            bpl XSLP8
 RTS_0B      rts
 
-LC80C       jmp X_PUSHVAL
+XSLP8       jmp X_PUSHVAL
 
 POPINT_NZ   jsr X_POPINT
             bne RTS_0B
             tax
             bne RTS_0B
-LC817       lda #$05
+XSLER       lda #$05
             jmp SERROR
 
 X_STRASIGN  jsr X_POPSTR
-LC81F       lda FR0
+RISASN      lda FR0
             sta L0099
             lda FR0+1
             sta L009A
@@ -4784,25 +4782,25 @@ LC81F       lda FR0
             ldy FR0+3
             sty L00A3
             ldy OPSTKX
-            beq LC842
+            beq XSA1
             lda #$80
             sta L00B1
             jsr EXOPOP
             lda FR0+3
             ldy FR0+2
             rol L00B1
-            bcs LC849
-LC842       jsr X_POPSTR
+            bcs XSA2A
+XSA1        jsr X_POPSTR
             lda FR0+5
             ldy FR0+4
-LC849       cmp L00A3
-            bcc LC853
-            bne LC857
+XSA2A       cmp L00A3
+            bcc XSA3
+            bne XSA4
             cpy L00A2
-            bcs LC857
-LC853       sta L00A3
+            bcs XSA4
+XSA3        sta L00A3
             sty L00A2
-LC857       clc
+XSA4        clc
             lda FR0
             sta L009B
             adc L00A2
@@ -4814,33 +4812,33 @@ LC857       clc
             sec
             tya
             sbc STARP
-            sta L00F9
+            sta ZTEMP3
             txa
             sbc STARP+1
-            sta L00FA
+            sta ZTEMP3+1
             jsr DO_MOVEUP
             lda VNUM
             jsr GETVAR
             sec
-            lda L00F9
+            lda ZTEMP3
             sbc FR0
             tay
-            lda L00FA
+            lda ZTEMP3+1
             sbc FR0+1
             tax
             lda #$02
             and L00B1
-            beq LC899
+            beq XSA5
             lda #$00
             sta L00B1
             cpx FR0+3
-            bcc LC898
-            bne LC899
+            bcc XSA6
+            bne XSA5
             cpy FR0+2
-            bcs LC899
-LC898       rts
+            bcs XSA5
+XSA6        rts
 
-LC899       sty FR0+2
+XSA5        sty FR0+2
             stx FR0+3
             jmp RTNVAR
 
@@ -4850,73 +4848,73 @@ X_DIM       ldy STINDEX
             rts
 LC8A7       jsr EXEXPR
             lsr VTYPE
-            bcs LC915
+            bcs DCERR
             sec
             rol VTYPE
             bmi LC918
-            lda L00F5
+            lda ZTEMP1
             adc #$01
-            sta L00F5
+            sta ZTEMP1
             sta FR0+2
-            lda L00F6
+            lda ZTEMP1+1
             adc #$00
-            bmi LC915
+            bmi DCERR
             sta FR0+3
-            sta L00F6
+            sta ZTEMP1+1
             lda L0097
             adc #$01
             sta FR0+4
             lda L0098
             adc #$00
             sta FR0+5
-            bmi LC915
+            bmi DCERR
             ldy #$00
-            sty L00F7
-            sty L00F8
+            sty ZTEMP4
+            sty ZTEMP4+1
             ldy #$10
-LC8DB       lda L00F5
+LC8DB       lda ZTEMP1
             lsr
             bcc LC8EF
             clc
-            lda L00F7
+            lda ZTEMP4
             adc FR0+4
-            sta L00F7
-            lda L00F8
+            sta ZTEMP4
+            lda ZTEMP4+1
             adc FR0+5
-            sta L00F8
-            bmi LC915
-LC8EF       ror L00F8
-            ror L00F7
-            ror L00F6
-            ror L00F5
+            sta ZTEMP4+1
+            bmi DCERR
+LC8EF       ror ZTEMP4+1
+            ror ZTEMP4
+            ror ZTEMP1+1
+            ror ZTEMP1
             dey
             bne LC8DB
-            asl L00F5
-            rol L00F6
-            bmi LC915
-            ldx L00F6
-            lda L00F5
+            asl ZTEMP1
+            rol ZTEMP1+1
+            bmi DCERR
+            ldx ZTEMP1+1
+            lda ZTEMP1
             asl
-            rol L00F6
-            bmi LC915
-            adc L00F5
-            sta L00F5
+            rol ZTEMP1+1
+            bmi DCERR
+            adc ZTEMP1
+            sta ZTEMP1
             tay
             txa
-            adc L00F6
-            sta L00F6
+            adc ZTEMP1+1
+            sta ZTEMP1+1
             bpl LC92C
-LC915       jmp ERR_9
+DCERR       jmp ERR_9
 LC918       lda #$00
             sta FR0+2
             sta FR0+3
-            ldy L00F5
+            ldy ZTEMP1
             sty FR0+4
-            lda L00F6
+            lda ZTEMP1+1
             sta FR0+5
             bne LC92C
             cpy #$00
-            beq LC915
+            beq DCERR
 LC92C       ldx #ENDSTAR
             jsr EXPAND
             sec
@@ -4929,7 +4927,7 @@ LC92C       ldx #ENDSTAR
             jsr RTNVAR
             lda #$00
             tay
-            ldx L00F6
+            ldx ZTEMP1+1
             beq LC952
 LC948       sta (L0097),Y
             iny
@@ -4937,7 +4935,7 @@ LC948       sta (L0097),Y
             inc L0098
             dex
             bne LC948
-LC952       ldx L00F5
+LC952       ldx ZTEMP1
             beq LC95C
 LC956       sta (L0097),Y
             iny
@@ -4996,15 +4994,15 @@ LC9A0       lda #EVLABEL + EVL_GOS
 LC9AB       eor #$80
             jsr VAR_PTR
             txa
-            cmp (L009D),Y
+            cmp (WVVTPT),Y
             beq LC9E8
-            sta (L009D),Y
+            sta (WVVTPT),Y
             lda L0099
             ldy #$02
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda L009A
-            sta (L009D),Y
+            sta (WVVTPT),Y
             jmp LC9E8
 
 GEN_LNHASH  lda L0099
@@ -5133,25 +5131,25 @@ LCA90       ldy #$00
             sta DATALN+1
             iny
             lda (INBUFF),Y
-            sta L00F5
+            sta ZTEMP1
             sty CIX
             ldy CIX
 LCAA4       iny
             lda (INBUFF),Y
-            sta L00F6
+            sta ZTEMP1+1
             iny
             sty CIX
             lda (INBUFF),Y
             cmp #$01
             beq LCAD5
-            ldy L00F6
-            cpy L00F5
+            ldy ZTEMP1+1
+            cpy ZTEMP1
             bcs LCABB
             dey
             bcc LCAA4
 LCABB       dey
             sty CIX
-LCABE       ldy #$01
+XRD3        ldy #$01
             lda (INBUFF),Y
             bmi ERR_06
             sec
@@ -5164,23 +5162,23 @@ LCABE       ldy #$01
             sta INBUFF+1
             bcc LCA90
 LCAD5       lda #$00
-            sta L00F5
-LCAD9       lda L00F5
+            sta ZTEMP1
+LCAD9       lda ZTEMP1
             cmp DATAD
             bcs LCAF1
 LCADF       inc CIX
             ldy CIX
             lda (INBUFF),Y
             cmp #CR
-            beq LCABE
+            beq XRD3
             cmp #','
             bne LCADF
-            inc L00F5
+            inc ZTEMP1
             bne LCAD9
 LCAF1       lda #$40
             sta L00A6
             inc CIX
-            jmp LCB42
+            jmp XINA
 
 INP_COMMA   ldy CIX
             lda (INBUFF),Y
@@ -5213,30 +5211,33 @@ LCB27       jsr GETTOK
             sta ENTDTD
 LCB33       jsr T_LDBUFA
             jsr GLINE
-            jsr LCB5B
+            jsr XITB
             ldy #$00
             sty L00A6
             sty CIX
-LCB42       jsr GETTOK
+XINA        jsr GETTOK
             inc STINDEX
             lda VTYPE
-            bmi LCB6E
+            bmi XISTR
             jsr T_AFP
-            bcs LCB65
+            bcs XIERR
             jsr INP_COMMA
-            bne LCB65
+            bne XIERR
             jsr RTNVAR
-            jmp LCBAC
-LCB5B       lda BRKKEY
+            jmp XINDEX
+
+XITB        lda BRKKEY
             beq LCB60
             rts
 LCB60       dec BRKKEY
             jmp CHK_BRK
-LCB65       lda #$00
+
+XIERR       lda #$00
             sta ENTDTD
             lda #$08
             jmp SERROR
-LCB6E       ldy #$00
+
+XISTR       ldy #$00
             lda #$11
             sta OPSTK
             sty OPSTKX
@@ -5246,19 +5247,19 @@ LCB6E       ldy #$00
             jsr X_PUSHVAL
             dec CIX
             lda CIX
-            sta L00F5
+            sta ZTEMP1
             ldx #$FF
-LCB88       inx
+XIS1        inx
             inc CIX
             ldy CIX
             lda (INBUFF),Y
             cmp #CR
-            beq LCB9B
+            beq XIS2
             cmp #','
-            bne LCB88
+            bne XIS1
             bit L00A6
-            bvc LCB88
-LCB9B       ldy L00F5
+            bvc XIS1
+XIS2        ldy ZTEMP1
             lda STINDEX
             pha
             txa
@@ -5266,9 +5267,9 @@ LCB9B       ldy L00F5
             jsr RISC
             pla
             sta STINDEX
-            jsr LC81F
-LCBAC       bit L00A6
-            bvc LCBC1
+            jsr RISASN
+XINDEX      bit L00A6
+            bvc XIN
             inc DATAD
             ldx STINDEX
             inx
@@ -5276,8 +5277,8 @@ LCBAC       bit L00A6
             bcs LCBC8
             jsr INP_COMMA
             bcc LCBD8
-            jmp LCABE
-LCBC1       ldx STINDEX
+            jmp XRD3
+XIN         ldx STINDEX
             inx
             cpx NXTSTD
             bcc LCBD0
@@ -5289,7 +5290,7 @@ LCBD0       jsr INP_COMMA
             bcc LCBD8
             jmp LCB33
 LCBD8       inc CIX
-            jmp LCB42
+            jmp XINA
 
 PRINT_STR   ldx #$00
             lda FR0
@@ -6355,7 +6356,7 @@ LDFA2       asl
 LDFA7       iny
             lda (SCRADR),Y
             bpl LDFA7
-LDFAC       sec
+SRCNXT      sec
 LDFAD       inc L00AF
             beq ERR_04
             tya
@@ -6508,25 +6509,25 @@ EGTVARH     iny
 EGTVAR      eor #$80
 GETVAR      sta VNUM
             jsr VAR_PTR
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta VTYPE
             ldy #$02
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta FR0
             iny
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta FR0+1
             iny
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta FR0+2
             iny
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta FR0+3
             iny
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta FR0+4
             iny
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta FR0+5
             rts
 
@@ -6645,31 +6646,31 @@ X_POPVAL2   dec ARSLVL
 RTNVAR      lda VNUM
             jsr VAR_PTR
             lda VTYPE
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda VNUM
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda FR0
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda FR0+1
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda FR0+2
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda FR0+3
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda FR0+4
-            sta (L009D),Y
+            sta (WVVTPT),Y
             iny
             lda FR0+5
-            sta (L009D),Y
+            sta (WVVTPT),Y
             rts
 
-; GVVTADR in Atari Basic - get pointer to variable table in L009D
+; GVVTADR in Atari Basic - get pointer to variable table in WVVTPT
 VAR_PTR     asl
             rol
             rol
@@ -6679,11 +6680,11 @@ VAR_PTR     asl
             and #$F8
             clc
             adc VVTP
-            sta L009D
+            sta WVVTPT
             tya
             and #$07
             adc VVTP+1
-            sta L009E
+            sta WVVTPT+1
             ldy #$00
             rts
 
@@ -6826,8 +6827,8 @@ LE6FF       bit L00EC
 STFOUND     stx CIX
             jsr SETCODE
             jsr T_SKPSPC
-            jsr LE821
-            bcc LE751
+            jsr SYNENT
+            bcc SYNOK
             ldy LLNGTH
             lda (INBUFF),Y
             cmp #CR
@@ -6855,7 +6856,7 @@ LE744       ldy CIX
             cmp #CR
             bne LE741
             jsr SETCODE
-LE751       lda L0094
+SYNOK       lda L0094
             ldy NXTSTD
             sta VARSTK0,Y
             ldy CIX
@@ -6919,7 +6920,7 @@ LE7A1       dey
             jsr CONTRACT
             bit L00A6
             bpl P_SYNERROR
-            jsr LF231
+            jsr LDLINE
             jmp SYN_LINE
 
 P_SYNERROR  jsr PRINTLINE
@@ -6961,32 +6962,32 @@ LE813       sty TSLNUM+1
             sta FR0+1
             jmp SETCODE
 
-LE821       ldy #$00
+SYNENT      ldy #$00
             sty OPSTKX
             lda (SCRADR),Y
             asl
             tay
             lda SYN_ATAB,Y
-            sta L009D
-            sta L0482
+            sta CPC
+            sta SPC
             lda SYN_ATAB+1,Y
-            sta L009E
-            sta L0483
+            sta CPC+1
+            sta SPC+1
             lda L0094
-            sta L0481
+            sta SOX
             lda CIX
-            sta L0480
-LE843       inc L009D
+            sta SIX
+NEXT        inc CPC
             bne LE849
-            inc L009E
+            inc CPC+1
 LE849       ldx #$00
-            lda (L009D,X)
+            lda (CPC,X)
             bmi LE85B
             cmp #$05
             bcc LE8A2
-            jsr LE8E6
-            bcc LE843
-            jmp LE8BC
+            jsr TERMTST
+            bcc NEXT
+            jmp FAIL
 LE85B       asl
             tay
             lda SYN_ATAB+1,Y
@@ -6994,20 +6995,20 @@ LE85B       asl
             lda SYN_ATAB,Y
             pha
             cpy #$12
-            bcs LE878
+            bcs PUSH
             pla
             tay
             pla
             jsr JSR_AY
-            bcc LE843
-            jmp LE8BC
+            bcc NEXT
+            jmp FAIL
 
 JSR_AY      pha
             tya
             pha
             rts
 
-LE878       ldx OPSTKX
+PUSH        ldx OPSTKX
             inx
             inx
             inx
@@ -7015,62 +7016,63 @@ LE878       ldx OPSTKX
             beq ERR_14B
             stx OPSTKX
             lda CIX
-            sta L0480,X
+            sta SIX,X
             lda L0094
-            sta L0481,X
-            lda L009D
-            sta L0482,X
-            lda L009E
-            sta L0483,X
+            sta SOX,X
+            lda CPC
+            sta SPC,X
+            lda CPC+1
+            sta SPC+1,X
             pla
-            sta L009D
+            sta CPC
             pla
-            sta L009E
-            jmp LE843
+            sta CPC+1
+            jmp NEXT
 ERR_14B     jmp ERR_14
 LE8A2       ldx OPSTKX
             bne LE8A7
             rts
-LE8A7       lda L0482,X
-            sta L009D
-            lda L0483,X
-            sta L009E
+LE8A7       lda SPC,X
+            sta CPC
+            lda SPC+1,X
+            sta CPC+1
             dex
             dex
             dex
             dex
             stx OPSTKX
-            bcs LE8BC
-            jmp LE843
-LE8BC       inc L009D
+            bcs FAIL
+            jmp NEXT
+
+FAIL        inc CPC
             bne LE8C2
-            inc L009E
+            inc CPC+1
 LE8C2       ldx #$00
-            lda (L009D,X)
-            bmi LE8BC
+            lda (CPC,X)
+            bmi FAIL
             cmp #$03
             beq LE8A2
-            bcs LE8BC
+            bcs FAIL
             lda CIX
             cmp LLNGTH
             bcc LE8D6
             sta LLNGTH
 LE8D6       ldx OPSTKX
-            lda L0480,X
+            lda SIX,X
             sta CIX
-            lda L0481,X
+            lda SOX,X
             sta L0094
-            jmp LE843
+            jmp NEXT
 
 RTS_2       rts
 
-LE8E6       cmp #$0F
+TERMTST     cmp #$0F
             bne SRCONT
-            inc L009D
+            inc CPC
             bne LE8F0
-            inc L009E
+            inc CPC+1
 LE8F0       ldx #$00
-            lda (L009D,X)
+            lda (CPC,X)
             clc
             dec L0094
 
@@ -7102,7 +7104,8 @@ LEREM       ldx #$FF
             dey
             lda #CR
             sta (INBUFF),Y
-            jmp LE751
+            jmp SYNOK
+
 LE928       jmp LE744
 
 SRCONT      jsr UCASEBUF
@@ -7119,7 +7122,7 @@ SRCONT      jsr UCASEBUF
             adc #$10
             sta SVONTC
 LE946       ldy #$00
-            lda (L009D),Y
+            lda (CPC),Y
             cmp SVONTC
             beq LE960
             cmp #CATN
@@ -7147,61 +7150,61 @@ LLVARN      lda #$C0
             bne GETVARN
 
             ; Check numeric variable name
-LNVARN      lda #$00
+LNVARN      lda #$00            ; TNVAR in BASIC source
             beq GETVARN
 
             ; Check string variable name
-LSTVARN     lda #EVSTR
-GETVARN     sta VTYPE
+LSTVARN     lda #EVSTR          ; TSVAR in BASIC source
+GETVARN     sta VTYPE           ; TVAR  in BASIC source
             jsr UCASEBUF
             sty TVSCIX
             jsr CHK_NAMECHR
-            bcs LE9AD
+            bcs TVFAIL
             jsr SRCONT
             lda SVONTC
-            beq LE994
+            beq TV1
             ldy L00B2
             lda (INBUFF),Y
             cmp #'0'
-            bcc LE9AD
-LE994       inc CIX
+            bcc TVFAIL
+TV1         inc CIX
             jsr CHK_NAMECHR
-            bcc LE994
+            bcc TV1
             cmp #'0'
             bcc LE9A3
             cmp #'9'+1
-            bcc LE994
+            bcc TV1
 LE9A3       cmp #'$'
-            beq LE9AF
+            beq TVSTR
             bit VTYPE
-            bpl LE9B8
-            bvs LE9C5
-LE9AD       sec
+            bpl TVOK
+            bvs TVOK2
+TVFAIL      sec
             rts
-LE9AF       bit VTYPE
-            bpl LE9AD
-            bvs LE9AD
+TVSTR       bit VTYPE
+            bpl TVFAIL
+            bvs TVFAIL
             iny
-            bne LE9C5
-LE9B8       lda (INBUFF),Y
+            bne TVOK2
+TVOK        lda (INBUFF),Y
             cmp #'('
-            bne LE9C5
+            bne TVOK2
             iny
             lda #EVARRAY
             ora VTYPE
             sta VTYPE
-LE9C5       lda TVSCIX
+TVOK2       lda TVSCIX
             sta CIX
             sty TVSCIX
             ldy VNTP+1
             lda VNTP
             jsr OVSEARCH
-LE9D2       bcs LE9DE
+TVRS        bcs TVS0
             cpx TVSCIX
-            beq LEA19
-LE9D8       jsr LDFAC
-            jmp LE9D2
-LE9DE       sec
+            beq TVSUC
+LE9D8       jsr SRCNXT
+            jmp TVRS
+TVS0        sec                 ; New variable, store
             lda TVSCIX
             sbc CIX
             sta CIX
@@ -7216,46 +7219,46 @@ LE9DE       sec
             dex
             lda LBUFF,X
             ora #$80
-LE9FA       sta (L0097),Y
+TVS1        sta (L0097),Y
             dex
             lda LBUFF,X
             dey
-            bpl LE9FA
+            bpl TVS1
             ldy #$08    ; Expand VVT by 8 bytes
             ldx #STMTAB
             jsr EXPLOW
             inc L00B1
             jsr T_ZFR0
             ldy #$07
-LEA11       lda VTYPE,Y
+TVS2        lda VTYPE,Y
             sta (L0097),Y
             dey
-            bpl LEA11
-LEA19       tya
+            bpl TVS2
+TVSUC       tya                 ; Test Variable Syntax U C
             pha
-            lda L009D
+            lda CPC             ; Save CPC, it is the same as WVVTPT
             pha
-            ldx L009E
+            ldx CPC+1
             lda L00AF
             jsr VAR_PTR
-            lda (L009D),Y
+            lda (WVVTPT),Y
             eor VTYPE
             tay
-            stx L009E
+            stx CPC+1           ; Restore CPC
             pla
-            sta L009D
+            sta CPC
             cpy #$80
             pla
             tay
             bcs LE9D8
             bit VTYPE
-            bvc LEA3D
-            bmi LEA3D
+            bvc TVNP
+            bmi TVNP
             dec TVSCIX
-LEA3D       lda TVSCIX
+TVNP        lda TVSCIX          ; Test Variable No Paren
             sta CIX
             lda L00AF
-            bpl LEA4C
+            bpl LEA4C           ; Variable > 127
             lda #$00
             jsr SETCODE
             lda L00AF
@@ -7269,29 +7272,29 @@ CHK_NAMECHR ldy CIX
 IS_NAMECHR  cmp #'_'
             beq LEA51
             cmp #'A'
-            bcc LEA66
+            bcc CHKFAIL
             cmp #'Z'+1
             rts
 
 LEA62       ldy TVSCIX
             sty CIX
-LEA66       sec
+CHKFAIL     sec
             rts
 
 GET_HEXDIG  ldy CIX
             lda (INBUFF),Y
             sec
             sbc #'0'
-            bcc LEA66
+            bcc CHKFAIL
             cmp #10
-            bcc LEA7F
+            bcc HEXDIGOK
             cmp #'A'-'0'
-            bcc LEA66
+            bcc CHKFAIL
             sbc #7
             cmp #$10
-            bcs LEA66
+            bcs CHKFAIL
 
-LEA7F       ldy #$04
+HEXDIGOK    ldy #$04
 LEA81       asl FR0
             rol FR0+1
             dey
@@ -8117,21 +8120,21 @@ POP_RETURN  jsr X_POP
 
 ; Search string #($AF) in table at AY, skipping the first X bytes on each string.
 ; Returns string address at SCRADR
-STR_TABN    stx ARSLVL
+STR_TABN    stx SRCSKP          ; LSCAN in BASIC sources
             sta SCRADR+1
             sty SCRADR
-LF1C1       ldy ARSLVL
+LSC0        ldy SRCSKP
             lda L00AF
-            beq LF1D7
+            beq LSINC
             dec L00AF
-LF1C9       lda (SCRADR),Y
-            bmi LF1D0
+LSC1        lda (SCRADR),Y
+            bmi LSC2
             iny
-            bne LF1C9
-LF1D0       iny
-            jsr LF1D7
-            jmp LF1C1
-LF1D7       clc
+            bne LSC1
+LSC2        iny
+            jsr LSINC
+            jmp LSC0
+LSINC       clc
             tya
             adc SCRADR
             sta SCRADR
@@ -8155,12 +8158,12 @@ LF1F8       pla
             bpl LF1E6
             rts
 
-LF1FC       jsr P_SPC
+P_SPCSTR    jsr P_SPC
 P_STR_SPC   jsr P_STRB
 P_SPC       lda #' '
             jmp PUTCHAR
 
-PRINTLINE   ldy #$00
+PRINTLINE   ldy #$00            ; LLINE in BASIC source
             lda (STMCUR),Y
             tax
             iny
@@ -8181,7 +8184,7 @@ LF228       stx FR0
 LF22A       jsr P_SPC
             dec FR0
             bpl LF22A
-LF231       ldy #$02
+LDLINE      ldy #$02            ; List direct line
             lda (STMCUR),Y
             sta LLNGTH
             iny
@@ -8189,25 +8192,26 @@ LF238       lda (STMCUR),Y
             sta NXTSTD
             iny
             sty STINDEX
-            jsr LF249
+            jsr LSTMT
             ldy NXTSTD
             cpy LLNGTH
             bcc LF238
             rts
-LF249       jsr L_GTOK
-            cmp #TOK_INVLET ; list an invisible "LET"
+
+LSTMT       jsr L_GTOK
+            cmp #TOK_INVLET     ; list an invisible "LET"
             beq L_ADV
-            cmp #TOK_LREM   ; list a "--"
+            cmp #TOK_LREM       ; list a "--"
             beq PRINT_LREM
             jsr IPRINTSTMT
             jsr L_GTOK
             cmp #TOK_ERROR
-            beq LF262
-            cmp #TOK_DATA+1 ; First statements are "REM" and "DATA"
+            beq LDATAREM
+            cmp #TOK_DATA+1
             bcs L_ADV
-LF262       jsr L_NXTOK
+LDATAREM    jsr L_NXTOK         ; List DATA or REM or ERROR
             jsr PUTCHAR
-            jmp LF262
+            jmp LDATAREM
 
 PRINT_LREM  ldy #$1E
             lda F_LIST
@@ -8252,7 +8256,7 @@ L_FPVAR     jsr T_FASC
 LF2C2       jsr PUT_INBUF
             jmp L_ADV
 
-LF2C8       jsr P_STRB
+P_STR1      jsr P_STRB
             jmp L_ADV
 
 ; List string constant
@@ -8283,26 +8287,26 @@ L_TOKS      sec
             jsr STR_TABN
             jsr L_GTOK
             cmp #CEXOR
-            beq LF32F
+            beq P_SPCSTR1
             cmp #CFDIV
-            beq LF32F
+            beq P_SPCSTR1
             cmp #CMOD
-            beq LF32F
+            beq P_SPCSTR1
             cmp #CEXEC
-            beq LF32F
+            beq P_SPCSTR1
             cmp #CGOG
-            beq LF32F
+            beq P_SPCSTR1
             cmp #CNOT
-            beq LF332
+            beq P_STRSPC1
             cmp #CACOM+1
-            bcs LF2C8
+            bcs P_STR1
             ldy #$00
             lda (SCRADR),Y
             and #$7F
             jsr IS_NAMECHR
-            bcs LF2C8
-LF32F       jsr P_SPC
-LF332       jsr P_STR_SPC
+            bcs P_STR1
+P_SPCSTR1   jsr P_SPC
+P_STRSPC1   jsr P_STR_SPC
             jmp L_ADV
 
 L_NXTOK     inc STINDEX
@@ -8488,7 +8492,7 @@ LF464       pla
 LF474       eor #$80
             eor L00C7
             beq LF43F
-            jmp LF75A
+            jmp SKP_ERR
 
 ERR_13      lda #$0D
             jmp SERROR
@@ -8672,7 +8676,7 @@ X_STOP      jsr SAVSTOPLN
             lda #>STOPPED
             sta SCRADR+1
             jsr P_STRB
-            jmp LF92E
+            jmp ERR_PLNUM
 
             ; Save stopped line number
 SAVSTOPLN   ldy #$01
@@ -8705,8 +8709,8 @@ X_CONT      ldy #$01
             jmp NEXT_LINE
 
 X_TRAP      jsr GT_LBLNUM
-            sta L00BC
-            sty L00BD
+            sta TRAPLN
+            sty TRAPLN+1
             rts
 
 X_ON        sty L00B3
@@ -8803,32 +8807,32 @@ RSTPTR      lda STARP
             rts
 
 ZVAR        ldx VVTP
-            stx L00F5
+            stx ZTEMP1
             ldy VVTP+1
-            sty L00F6
-LF6B7       ldx L00F5
+            sty ZTEMP1+1
+LF6B7       ldx ZTEMP1
             cpx ENDVVT
-            lda L00F6
+            lda ZTEMP1+1
             sbc ENDVVT+1
             bcs LF6E4
             ldy #$00
-            lda (L00F5),Y
+            lda (ZTEMP1),Y
             and #$FC
-            sta (L00F5),Y
+            sta (ZTEMP1),Y
             ldy #$02
             ldx #$06
             lda #$00
-LF6CF       sta (L00F5),Y
+LF6CF       sta (ZTEMP1),Y
             iny
             dex
             bne LF6CF
-            lda L00F5
+            lda ZTEMP1
             clc
             adc #$08
-            sta L00F5
-            lda L00F6
+            sta ZTEMP1
+            lda ZTEMP1+1
             adc #$00
-            sta L00F6
+            sta ZTEMP1+1
             bne LF6B7
 LF6E4       jmp GEN_LNHASH
 
@@ -8841,7 +8845,7 @@ RUNINIT     ldy #$00
             sty DATALN
             sty DATALN+1
             dey
-            sty L00BD
+            sty TRAPLN+1
             sty BRKKEY
             jmp CLSALL
 
@@ -8897,12 +8901,12 @@ LF749       cmp #$07
             beq SKP_LOOP
 LF756       inc FR0+3
             bne SKP_LOOP
-LF75A       jsr RESCUR
+SKP_ERR     jsr RESCUR
 ERR_22      lda #$16
             jmp SERROR
 LF762       ldy #$01
             lda (STMCUR),Y
-            bmi LF75A
+            bmi SKP_ERR
             clc
             lda LLNGTH
             adc STMCUR
@@ -8911,7 +8915,7 @@ LF762       ldy #$01
             inc STMCUR+1
 LF773       ldy #$01
             lda (STMCUR),Y
-            bmi LF75A
+            bmi SKP_ERR
             iny
             lda (STMCUR),Y
             sta LLNGTH
@@ -9071,13 +9075,13 @@ GTO_LABEL   ldy STINDEX
 LF890       eor #$80
             jsr VAR_PTR
             txa
-            cmp (L009D),Y
+            cmp (WVVTPT),Y
             bne ERR_LABEL
             ldy #$03
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta STMCUR+1
             dey
-            lda (L009D),Y
+            lda (WVVTPT),Y
             sta STMCUR
             lda (STMCUR),Y
             sta LLNGTH
@@ -9117,18 +9121,18 @@ ERROR       lda #$00
             cld
             sta DSPFLG
             jsr SAVSTOPLN
-            ldy L00BD
+            ldy TRAPLN+1
             bmi ERR_NOTRAP
-            lda L00BC
+            lda TRAPLN
             ldx #$80
-            stx L00BD
+            stx TRAPLN+1
             ldx ERRNUM
             stx ERRSAVE
             ldx #$00
             stx ERRNUM
             jmp GTO_LINE
 
-ERR_NOTRAP  lda ERRNUM
+ERR_NOTRAP  lda ERRNUM          ; ERRM1 in BASIC sources
             cmp #$80
             bne ERR_PRINT
             jmp X_STOP
@@ -9144,15 +9148,15 @@ ERR_PRINT   jsr PUTEOL
             sbc #$62
 LF91C       sta L00AF
             cmp #$4C
-            bcs LF92E
+            bcs ERR_PLNUM
             ldx #$00
             lda #>ERRTAB
             ldy #<ERRTAB
             jsr STR_TABN
-            jsr LF1FC
-LF92E       ldy #$01
+            jsr P_SPCSTR        ; Print SPC + string + SPC
+ERR_PLNUM   ldy #$01            ; ERRM2 in BASIC sources
             lda (STMCUR),Y
-            bmi LF949
+            bmi ERR_NOLN
             lda #<ERRTAB
             ldy #>ERRTAB
             jsr P_STRB_AY
@@ -9162,14 +9166,14 @@ LF92E       ldy #$01
             dey
             lda (STMCUR),Y
             sta FR0
-            jsr LF956
-LF949       jsr PUTEOL
+            jsr PUT_INT
+ERR_NOLN    jsr PUTEOL          ; ERRDONE in BASIC sources
             jsr TRACE_OFF
             jmp SYN_START
 
 PUT_AX      sta FR0+1
             stx FR0
-LF956       jsr T_IFP
+PUT_INT     jsr T_IFP
 PUT_FP      jsr T_FASC
 PUT_INBUF   lda INBUFF
             ldy INBUFF+1
@@ -9447,7 +9451,7 @@ X_TEXT      jsr GET2INT
             bmi LFC4B
             jsr X_STRP
 LFC4B       jsr X_POPSTR
-LFC4E       lda FR0+2
+TXT_NXTCH   lda FR0+2
             ora FR0+3
             beq TS_RTS
             ldy #$00
@@ -9507,7 +9511,7 @@ LFCC1       lda FR0+2
             bne LFCC7
             dec FR0+3
 LFCC7       dec FR0+2
-            jmp LFC4E
+            jmp TXT_NXTCH
 
             ; Transform ATASCII to screen code
 ATASCR_T    .byte $40,$20,$60,$00
@@ -9696,13 +9700,13 @@ LFE08       ldx L00ED
             jmp LFEBA
             ; Plot all possible points to the left
 LFE14       jsr PLOT_SET
-LFE17       jsr PLOT_DCOL
+PLOT_LNXT   jsr PLOT_DCOL
             tya
             bmi LFE28
             jsr PLOT_GET
             bne LFE28
             jsr PLOT_SET
-            jmp LFE17
+            jmp PLOT_LNXT
             ; Store last point to the left
 LFE28       jsr PLOT_ICOL
             tya
@@ -9717,13 +9721,13 @@ LFE28       jsr PLOT_ICOL
             ; Plot all possible points to the right
             ldy FR1+3
             ldx L00ED
-LFE3B       jsr PLOT_ICOL
+PLOT_RNXT   jsr PLOT_ICOL
             cpy FR1+1
             bcs LFE4D
             jsr PLOT_GET
             bne LFE4D
             jsr PLOT_SET
-            jmp LFE3B
+            jmp PLOT_RNXT
             ; Store last point to the right
 LFE4D       jsr PLOT_DCOL
             tya
