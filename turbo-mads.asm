@@ -710,7 +710,11 @@ NMI_VEC     = $FFFA
 IRQ_VEC     = $FFFE
 
 ; The TurboBasic XL low ram address - adjust to load in bigger DOS
+.if .def tb_lowmem
+TBXL_LOW_ADDRESS = tb_lowmem * $100
+.else
 TBXL_LOW_ADDRESS = $2080
+.endif
 ; The character map of the loader - used to avoid screen flicker while loading
 RAM_CHMAP   = $5C00
 ; The loader address - will be overwritten by the main code
@@ -793,6 +797,7 @@ END_LOAD_MSG
 ;
             org TBXL_LOW_ADDRESS
 
+        .macro def_RESET_V
 RESET_V     lda #<RESET_V
             ldy #>RESET_V
             sta DOSINI
@@ -807,9 +812,20 @@ JMPDOS      jsr $0000
             sta MEMLO
             sty MEMLO+1
             jmp COLDSTART
+.def :RESET_V = RESET_V
+.def :JMPDOS = JMPDOS
+        .endm
 
+        .macro def_OPSTK
 ; Reserve 64 bytes for the operation stack.
 OPSTK       .ds $40
+.def :OPSTK = OPSTK
+        .endm
+
+        .if .not .def tb_lowmem
+            def_RESET_V
+            def_OPSTK
+        .endif
 
 ; Align the variable stack
 ;            org $2100
@@ -853,6 +869,7 @@ STMT_X_TAB  .word X_REM,X_DATA,X_INPUT,X_COLOR
             .word X_CLS,X_DSOUND,X_CIRCLE,X_PPUT
             .word X_PGET
 
+        .macro def_FPTMP
 ; MATHPACK temporary variables, used to accelerate MUL and DIV
 ; EXPAND_POW2 stores all the
 FPTMP0      .ds 8
@@ -861,6 +878,17 @@ FPTMP2      .ds 8
 FPTMP3      .ds 8
 FPTMP4      .ds 8
 FPTMP5      .ds 8
+.def :FPTMP0 = FPTMP0
+.def :FPTMP1 = FPTMP1
+.def :FPTMP2 = FPTMP2
+.def :FPTMP3 = FPTMP3
+.def :FPTMP4 = FPTMP4
+.def :FPTMP5 = FPTMP5
+        .endm
+
+        .if .not .def tb_lowmem
+            def_FPTMP
+        .endif
 
 .if .not .def tb_fixes
 ; Note: 6 bytes skipped to align next block to $2300
@@ -876,11 +904,22 @@ DEV_S_      .byte 'S:', CR
 DEV_C_      .byte 'C:', CR
 DEV_P_      .byte 'P:', CR
 
-BLOADFLAG   .ds 1
+BLOADFLAG
+        .if .def tb_lowmem
+            .byte       0
+        .else
+            .ds 1
+        .endif
 
 ; Note: Skip this 13 bytes so that DISROM has an address with <(DISROM-1) == >(DISROM-1)
 ;       This is used as return to USR call
-            .ds (>*)-((* & $00FF) - 1)
+.if .not .def tb_fixes
+        .if (>*) < (<*)
+            .ds ((>*)-((* & $00FF) - 1)) + 257
+        .else
+            .ds ((>*)-((* & $00FF) - 1))
+        .endif
+.endif ; tb_fixes
 
 ;            org $2324
 DISROM      lda PORTB
@@ -888,6 +927,49 @@ DISROM      lda PORTB
             ora #$02
             sta PORTB
             rts
+
+        .macro def_NMI_PROC
+.def :NMI_PROC
+            bit NMIST   ; 37
+            bpl L24B3
+            jmp (VDSLST)
+L24B3       pha
+            txa
+            pha
+            lda #>NMI_END
+            pha
+            lda #<NMI_END
+            pha
+            tsx
+            lda $100 + 5,X
+            pha
+            cld
+            pha
+            txa
+            pha
+            tya
+            pha
+            inc PORTB
+            sta NMIRES
+            jmp (VVBLKI)
+
+.def :IRQ_PROC
+            pha ; 14
+            lda #>IRQ_END
+            pha
+            lda #<IRQ_END
+            pha
+            php
+            inc PORTB
+            jmp (VIMIRQ)
+        .endm
+
+        .if .def tb_lowmem
+            def_RESET_V
+            def_NMI_PROC
+        .endif
+
+;            .byte       0       ; SKIP
 
 ; Note: this table needs to be in address with low-part = $1D * 2 = $3A ($XX3A),
 ;       because the first executable token is '<=' at $1D
@@ -1167,7 +1249,7 @@ OPLTAB      ; Table with left operator precedence
             .byte $32 ; CERR    'ERR'
             .byte $32 ; CERL    'ERL'
 
-B_CIOV      inc PORTB
+B_CIOV      inc PORTB   ; 12
             jsr CIOV
             dec PORTB
             cpy #$00
@@ -1183,53 +1265,24 @@ X_ONEXEC
 X_ONGOS
             rts
 
-
-NMI_END     pla
+NMI_END     pla         ; 7
             tax
 IRQ_END     dec PORTB
             pla
             rti
 
-NMI_PROC    bit NMIST
-            bpl L24B3
-            jmp (VDSLST)
-L24B3       pha
-            txa
-            pha
-            lda #>NMI_END
-            pha
-            lda #<NMI_END
-            pha
-            tsx
-            lda $100 + 5,X
-            pha
-            cld
-            pha
-            txa
-            pha
-            tya
-            pha
-            inc PORTB
-            sta NMIRES
-            jmp (VVBLKI)
-
-IRQ_PROC    pha
-            lda #>IRQ_END
-            pha
-            lda #<IRQ_END
-            pha
-            php
-            inc PORTB
-            jmp (VIMIRQ)
+        .if .not .def tb_lowmem
+            def_NMI_PROC
+        .endif
 
 ; Calls PUTCHAR from IO channel X
-PDUM_ROM    inc PORTB
+PDUM_ROM    inc PORTB   ; 10
             jsr PDUM
             dec PORTB
             rts
 
 ; Calls PUTCHAR from IO channel X
-PDUM        lda IOCB0+ICPTH,X
+PDUM        lda IOCB0+ICPTH,X   ; 12
             pha
             lda IOCB0+ICPTL,X
             pha
@@ -1237,11 +1290,13 @@ PDUM        lda IOCB0+ICPTH,X
             ldy #$5C
             rts
 
-GETKEY      inc PORTB
+GETKEY      inc PORTB   ; 10
 JSR_GETKEY  jsr $0000
             dec PORTB
             rts
 
+        .macro def_X_DOS
+.def :X_DOS
 X_DOS       jsr CLSALL
             inc PORTB
             lda JMPDOS+1
@@ -1249,10 +1304,19 @@ X_DOS       jsr CLSALL
             sta DOSINI
             sty DOSINI+1
             jmp (DOSVEC)
+        .endm
+
+        .if .not .def tb_lowmem
+            def_X_DOS
+        .endif
 
 X_BYE       jsr CLSALL
             inc PORTB
             jmp SELFSV
+
+        .if .def tb_lowmem
+            def_X_DOS
+        .endif
 
 X_DPEEK     jsr X_POPINT
             inc PORTB
@@ -3437,6 +3501,12 @@ BGET_WORD   lda #$07
             tay
             pla
             rts
+
+        .if .def tb_lowmem
+            def_FPTMP
+            def_OPSTK
+        .endif
+
 
 ; This is the end of low memory use
 TOP_LOWMEM

@@ -1,7 +1,7 @@
 # Makefile: builds a bootable ATR image
 
 # Define to add minor fixes
-MADS_DEF=-d:tb_fixes
+MADS_DEF=-d:tb_fixes -d:tb_lowmem=32
 
 # Output ATR filename:
 ATR=tbasic.atr
