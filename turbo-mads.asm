@@ -9958,14 +9958,15 @@ X_CLS       jsr CLEAR_XYPOS
 X_TRACE     lda (STMCUR),Y
             cmp #TOK_STOP
             beq TRACE_OFF
-            lda #$4C       ; JMP DO_TRACE
+            lda #{JMP}      ; JMP DO_TRACE
             ldx #<DO_TRACE
             ldy #>DO_TRACE
-            bne LFF6C
-TRACE_OFF   lda #$A0       ; LDY #02 / LDA (),Y
+            bne PATCH_EXECNL
+TRACE_OFF   lda #{LDY #2}   ; LDY #02
             ldx #$02
-            ldy #$B1
-LFF6C       sta EXECNL      ; Patch instruction
+            ldy #{LDA (0),Y}; LDA (STMCUR),Y
+PATCH_EXECNL
+            sta EXECNL      ; Patch instruction
             stx EXECNL+1
             sty EXECNL+2
             rts
@@ -9980,6 +9981,8 @@ DO_TRACE    lda #'['
             jsr PUT_AX
             lda #']'
             jsr PUTCHAR
+            ; This is the first instructions of EXECNL, replaced
+            ; with the JMP to the trace code.
             ldy #$02
             lda (STMCUR),Y
             jmp EXECNT
@@ -10002,6 +10005,8 @@ GTO_LINE    sta TSLNUM
 
 ; Execute new line
 ; NOTE: you can't change the first two instructions without changing
+;       TRACE_ON / TRACE_OFF, because the first 3 bytes are overwritten
+;       with a JMP to DO_TRACE.
 EXECNL      ldy #$02
             lda (STMCUR),Y
 ; Continue execution after trace
