@@ -8975,19 +8975,19 @@ SKP_ELSE    cmp #$00
             bne SKP_LOOP
             lda FR0+3
             bne SKP_LOOP
-LF73F       rts
+SKP_RTS     rts
 LF740       lda FR0+3
-            beq LF73F
+            beq SKP_RTS
             dec FR0+3
             jmp SKP_LOOP
 LF749       cmp #$07
-            bne LF756
+            bne @+
             ldy NXTSTD
             dey
             lda (STMCUR),Y
             cmp #CTHEN
             beq SKP_LOOP
-LF756       inc FR0+3
+@           inc FR0+3
             bne SKP_LOOP
 SKP_ERR     jsr RESCUR
 ERR_22      lda #$16
@@ -8999,9 +8999,9 @@ LF762       ldy #$01
             lda LLNGTH
             adc STMCUR
             sta STMCUR
-            bcc LF773
+            bcc @+
             inc STMCUR+1
-LF773       ldy #$01
+@           ldy #$01
             lda (STMCUR),Y
             bmi SKP_ERR
             iny
@@ -9052,19 +9052,19 @@ ERR_24      lda #$18
 
 X_POP       lda RUNSTK+1
             cmp TOPRSTK+1
-            bcc LF7DF
+            bcc @+
             lda RUNSTK
             cmp TOPRSTK
-            bcs LF816
-LF7DF       sec
+            bcs RTS1_SEC
+@           sec
             lda TOPRSTK
             sbc #$04
             sta TOPRSTK
             sta APPMHI
-            bcs LF7EE
+            bcs @+
             dec TOPRSTK+1
             dec APPMHI+1
-LF7EE       ldy #$03
+@           ldy #$03
             lda (TOPRSTK),Y
             sta L00B2
             dey
@@ -9075,20 +9075,20 @@ LF7EE       ldy #$03
             sta TSLNUM
             dey
             lda (TOPRSTK),Y
-            bne LF814
+            bne RTS1_CLC
             tay
             sec
             lda TOPRSTK
             sbc #$0D
             sta TOPRSTK
             sta APPMHI
-            bcs LF813
+            bcs @+
             dec TOPRSTK+1
             dec APPMHI+1
-LF813       tya
-LF814       clc
+@           tya
+RTS1_CLC    clc
             rts
-LF816       sec
+RTS1_SEC    sec
             rts
 
 X_RETURN    jsr X_POP
@@ -9126,14 +9126,14 @@ ERR_26      lda #$1A
 
 X_EXIT      jsr X_POP
             bcs ERR_26
-            bne LF85B
+            bne @+
             lda #TOK_FOR
-LF85B       tax
+@           tax
             inx ; Search "NEXT" if "FOR", "WEND" if "WHILE", "LOOP" if "DO",
                 ; "UNTIL" if "REPEAT"
             jmp SKIP_STMT
 
-LF860       lda #TOK_ON
+RET_ON_EXEC lda #TOK_ON
             bne RETURN
 
 X_ENDPROC   jsr X_POP
@@ -9141,7 +9141,7 @@ X_ENDPROC   jsr X_POP
             cmp #TOK_EXEC
             beq RETURN
             cmp #TOK_ENDPROC ; Used to signal "ON * EXEC"
-            beq LF860
+            beq RET_ON_EXEC
             cmp #TOK_ON
             beq ERR_28
             cmp #TOK_GOSUB
@@ -9231,11 +9231,11 @@ ERR_PRINT   jsr PUTEOL
             lda #$00
             jsr PUT_AX
             lda ERRNUM
-            cmp #$1F
-            bcc LF91C
-            sbc #$62
-LF91C       sta L00AF
-            cmp #$4C
+            cmp #$1F            ; Last TBXL error is 30 ($1E)
+            bcc @+
+            sbc #$62            ; I/O error, subtract the gap
+@           sta L00AF
+            cmp #$4C            ; We know 76 errors in the table
             bcs ERR_PLNUM
             ldx #$00
             lda #>ERRTAB
@@ -9357,10 +9357,10 @@ X_TIME      lda RTCLOK+2
             sty FR0
             jsr T_IFP
             ldx #$05
-LFAD8       lda FP_256,X
+@           lda FP_256,X
             sta FR1,X
             dex
-            bpl LFAD8
+            bpl @-
             jsr T_FMUL
             jsr T_FMOVE
             pla
@@ -9377,17 +9377,17 @@ LFAD8       lda FP_256,X
 X_TIMEP     jsr X_TIME
             dec ARSLVL
             ldx #$05
-LFB03       lda JF_DAY,X
+@           lda JF_DAY,X
             sta FR1,X
             dex
-            bpl LFB03
+            bpl @-
             jsr T_FDIV
             ldy #$00
             lda FR0
             cmp #$40
-            bne LFB18
+            bne @+
             sty FR0+1
-LFB18       sty CIX
+@           sty CIX
             lda #$24
             jsr TM_EXTRACT
             lda #$60
@@ -9408,11 +9408,11 @@ TM_EXTRACT  pha
             lda #$00
             ldy FR0
             cpy #$40
-            bne LFB4D
+            bne @+
             ldy FR0+1
             sta FR0+1
             tya
-LFB4D       tax
+@           tax
             lsr
             lsr
             lsr
@@ -9422,9 +9422,9 @@ LFB4D       tax
             and #$0F
 TM_GETDIG   ora #'0'
             cmp #'9'+1
-            bcc LFB60
+            bcc @+
             adc #'A'-'9' - 2
-LFB60       ldy CIX
+@           ldy CIX
             sta LBUFF,Y
             inc CIX
             rts
@@ -9456,11 +9456,11 @@ X_TIMESET   jsr EXEXPR
             lda FR1
             ldy FR1+1
             ldx FR1+2
-LFBB1       sta RTCLOK+2        ; Write and retry until stable
+@           sta RTCLOK+2        ; Write and retry until stable
             sty RTCLOK+1
             stx RTCLOK
             cmp RTCLOK+2
-            bne LFBB1
+            bne @-
             jmp RSTSEOL
 TS_ERR18    jsr RSTSEOL
             jmp ERR_18
@@ -9481,11 +9481,11 @@ TS_GET2DIG  jsr T_GETDIGIT
 TS_ADD      clc
             adc FR1
             sta FR1
-            bcc LFBEB
+            bcc @+
             inc FR1+1
-            bne LFBEB
+            bne @+
             inc FR1+2
-LFBEB       rts
+@           rts
 TS_MUL10    asl FR1
             rol FR1+1
             rol FR1+2   ; *2
@@ -9536,9 +9536,10 @@ X_TEXT      jsr GET2INT
             jsr EXEXPR
             ldx ARSLVL
             lda VARSTK0,X
-            bmi LFC4B
+            bmi @+
+            ; Convert number to string
             jsr X_STRP
-LFC4B       jsr X_POPSTR
+@           jsr X_POPSTR
 TXT_NXTCH   lda FR0+2
             ora FR0+3
             beq TS_RTS
@@ -9546,9 +9547,9 @@ TXT_NXTCH   lda FR0+2
             sty L00DB
             sty L00DC
             lda (FR0),Y
-            bpl LFC60
+            bpl @+
             dec L00DB
-LFC60       jsr ATA2SCR
+@           jsr ATA2SCR
             asl
             asl
             sta L00A2
@@ -9560,7 +9561,8 @@ LFC60       jsr ATA2SCR
             sta L00A3
             jsr PREPLOT
             bcs TS_RTS
-LFC77       ldy #$08
+            ; Plot one row of the character
+TXT_NROW    ldy #$08
             sty L00DD
             ldy L00DC
             lda (L00A2),Y
@@ -9568,37 +9570,39 @@ LFC77       ldy #$08
             sta L00DA
             ldx L00ED
             ldy FR1+3
-LFC87       asl L00DA
+TXT_NCOL    asl L00DA
             lda (L00DE),Y
             and PLOT_MASK,X
-            bcc LFC93
+            bcc @+
             ora PLOT_PIX,X
-LFC93       sta (L00DE),Y
+@           sta (L00DE),Y
             dec L00DD
-            beq LFCA0
+            beq TXT_ECOL
             jsr PLOT_ICOL
             cpy FR1+1
-            bcc LFC87
-LFCA0       jsr PLOT_IROW2
+            bcc TXT_NCOL
+            ; End of column, increment row
+TXT_ECOL    jsr PLOT_IROW2
             inc L00DC
             lda L00DC
             cmp #$08
-            bcs LFCB1
+            bcs @+
             adc L0099
             cmp FR1
-            bcc LFC77
-LFCB1       lda L009B
+            bcc TXT_NROW
+            ; Next character
+@           lda L009B
             adc #$07
             sta L009B
-            bcc LFCBB
+            bcc @+
             inc L009C
-LFCBB       inc FR0
-            bne LFCC1
+@           inc FR0
+            bne @+
             inc FR0+1
-LFCC1       lda FR0+2
-            bne LFCC7
+@           lda FR0+2
+            bne @+
             dec FR0+3
-LFCC7       dec FR0+2
+@           dec FR0+2
             jmp TXT_NXTCH
 
             ; Transform ATASCII to screen code
@@ -9656,9 +9660,9 @@ PREPLOT     lda DINDEX
             asl
             rol L00DF
             adc L0099
-            bcc LFD31
+            bcc @+
             inc L00DF
-LFD31       asl
+@           asl
             sta L00DE
             rol L00DF
             lda GR_ROWS,X
@@ -9677,12 +9681,12 @@ LFD31       asl
             lsr
             lsr
             tax
-            beq LFD5F
-LFD58       asl L00DE
+            beq PP_SKIP
+@           asl L00DE
             rol L00DF
             dex
-            bne LFD58
-LFD5F       clc
+            bne @-
+PP_SKIP     clc
             lda L00DE
             adc SAVMSC
             sta L00DE
@@ -9695,52 +9699,54 @@ LFD5F       clc
             sta FR1+3
             ldy FR1+2
             sty L00ED
-            beq LFD86
+            beq PP_SKIP2
             and GR_PPBYTE,Y
             sta L00ED
-LFD7F       lsr FR1+4
+@           lsr FR1+4
             ror FR1+3
             dey
-            bne LFD7F
-LFD86       lda FR1+4
+            bne @-
+PP_SKIP2    lda FR1+4
             bne RTS_SEC
             lda FR1+3
             cmp FR1+1
             bcs RTS_SEC
             ldx FR1+2
-            bne LFD9E
+            bne PP_NTEXT
+            ; Text modes, convert to screen code
             lda COLOR
             jsr ATA2SCR
             sta PLOT_PIX
             clc
             rts
 
-LFD9E       ldy GR_PPBYTE,X
+            ; Graphics mode, get masks
+PP_NTEXT    ldy GR_PPBYTE,X
             sty FR1+4
             lda GR_BPP-1,X
             sta L00EE
             lda COLOR
             ora PLOT_MASK
             eor PLOT_MASK
-LFDB0       sta PLOT_PIX,Y
+PP_PIXLOOP  sta PLOT_PIX,Y
             ldx L00EE
-LFDB5       asl
+@           asl
             dex
-            bne LFDB5
+            bne @-
             dey
-            bpl LFDB0
+            bpl PP_PIXLOOP
             ldy FR1+4
             lda PLOT_MASK
-LFDC1       sta PLOT_MASK,Y
+PP_MSKLOOP  sta PLOT_MASK,Y
             ldx L00EE
-LFDC6       sec
+@           sec
             rol
             dex
-            bne LFDC6
+            bne @-
             dey
-            bpl LFDC1
+            bpl PP_MSKLOOP
             clc
-LFDCF       rts
+PP_RTS      rts
 
             ; PAINT (flood fill)
             ; NOTE:
@@ -9755,9 +9761,9 @@ LFDCF       rts
             ;
 X_PAINT     jsr GET2INT
             sta L0099
-            bne LFDCF
+            bne PP_RTS
             jsr PREPLOT
-            bcs LFDCF
+            bcs PP_RTS
             lda TOPRSTK
             sta L00A2
             lda TOPRSTK+1
@@ -9773,30 +9779,29 @@ PAINT_NXT   clc
             lda L00A2
             adc #$03
             sta L00A2
-            bcc LFDFD
+            bcc @+
             inc L00A3
-LFDFD       cmp L00E7
+@           cmp L00E7
             lda L00A3
             sbc L00E8
-            bcc LFE08
-            jmp ERR_2
-
-LFE08       ldx L00ED
+            bcc @+
+            jmp ERR_2   ; Not enough memory for the next span
+@           ldx L00ED
             ldy FR1+3
             jsr PLOT_GET
-            beq LFE14
-            jmp LFEBA
+            beq @+
+            jmp PAINT_ESPN
             ; Plot all possible points to the left
-LFE14       jsr PLOT_SET
+@           jsr PLOT_SET
 PLOT_LNXT   jsr PLOT_DCOL
             tya
-            bmi LFE28
+            bmi PLOT_LEND
             jsr PLOT_GET
-            bne LFE28
+            bne PLOT_LEND
             jsr PLOT_SET
             jmp PLOT_LNXT
             ; Store last point to the left
-LFE28       jsr PLOT_ICOL
+PLOT_LEND   jsr PLOT_ICOL
             tya
             ldy #$00
             sta (L00A2),Y
@@ -9811,13 +9816,13 @@ LFE28       jsr PLOT_ICOL
             ldx L00ED
 PLOT_RNXT   jsr PLOT_ICOL
             cpy FR1+1
-            bcs LFE4D
+            bcs PLOT_REND
             jsr PLOT_GET
-            bne LFE4D
+            bne PLOT_REND
             jsr PLOT_SET
             jmp PLOT_RNXT
             ; Store last point to the right
-LFE4D       jsr PLOT_DCOL
+PLOT_REND   jsr PLOT_DCOL
             tya
             ldy #$02
             sta (L00A2),Y
@@ -9833,7 +9838,7 @@ LFE4D       jsr PLOT_DCOL
             jsr PLOT_IROW
             ; Start from left span coordinate
             jsr PAINT_GETL
-LFE68       ; Check if we have more pixels in the span to test DOWN
+PAINT_SPDN  ; Check if we have more pixels in the span to test DOWN
             ldy #$01
             lda (L00A2),Y
             and #$07
@@ -9856,7 +9861,7 @@ LFE85       ldy L0099
             jsr PLOT_DROW
             ; Start from left span coordinate
             jsr PAINT_GETL
-LFE92       ; Check if we have more pixels in the span to test UP
+PAINT_SPUP  ; Check if we have more pixels in the span to test UP
             ldy #$01
             lda (L00A2),Y
             and #$07
@@ -9864,12 +9869,12 @@ LFE92       ; Check if we have more pixels in the span to test UP
             iny
             lda (L00A2),Y
             sbc FR1+3
-            bcc LFEA9
+            bcc @+
             ldy #$00
             lda (L00A2),Y
             and #$7F
             bpl LFE7D
-LFEA9       jsr PLOT_IROW
+@           jsr PLOT_IROW
 LFEAC       ldy #$01
             lda (L00A2),Y
             and #$07
@@ -9880,24 +9885,24 @@ LFEAC       ldy #$01
             // Ensure that we are outside span, we tested all
             jsr PLOT_ICOL
             ; End current span, continue from next pixel on old span
-LFEBA       jsr PLOT_ICOL
+PAINT_ESPN  jsr PLOT_ICOL
             stx L00ED
             sty FR1+3
             sec
             lda L00A2
             sbc #$03
             sta L00A2
-            bcs LFECC
+            bcs @+
             dec L00A3
-LFECC       cmp TOPRSTK
-            bne LFED6
+@           cmp TOPRSTK
+            bne @+
             lda L00A3
             cmp TOPRSTK+1
             beq PAINT_RTS
-LFED6       ldy #$00
+@           ldy #$00
             lda (L00A2),Y
-            bpl LFE92
-            bmi LFE68
+            bpl PAINT_SPUP
+            bmi PAINT_SPDN
 
             ; Increment plot row
 PLOT_IROW   inc L0099
@@ -9914,9 +9919,9 @@ PLOT_DROW   dec L0099
             lda L00DE
             sbc FR1+1
             sta L00DE
-            bcs LFEF9
+            bcs @+
             dec L00DF
-LFEF9       rts
+@           rts
             ; Read left pixel from span list
 PAINT_GETL  ldy #$00
             lda (L00A2),Y
@@ -9932,16 +9937,16 @@ PAINT_GETL  ldy #$00
             ; Increment plot column
 PLOT_ICOL   cpx FR1+4
             inx
-            bcc LFF13
+            bcc @+
             ldx #$00
             iny
-LFF13       rts
+@           rts
             ; Decrement plot column
 PLOT_DCOL   dex
-            bpl LFF1A
+            bpl @+
             ldx FR1+4
             dey
-LFF1A       rts
+@           rts
             ; Plots a pixel at current coordinates
 PLOT_SET    lda (L00DE),Y
             and PLOT_MASK,X
@@ -9952,14 +9957,14 @@ PLOT_SET    lda (L00DE),Y
 PLOT_GET    lda (L00DE),Y
             ora PLOT_MASK,X
             eor PLOT_MASK,X
-            beq LFF34
+            beq @+
             lda PLOT_PIX
             rts
-LFF34       lda PLOT_PIX
-            beq LFF3C
+@           lda PLOT_PIX
+            beq @+
             lda #$00
             rts
-LFF3C       lda #$01
+@           lda #$01
             rts
 
 X_CLS       jsr CLEAR_XYPOS
@@ -10057,9 +10062,9 @@ NEXT_LINE   ldy #$01
             lda LLNGTH
             adc STMCUR
             sta STMCUR
-            bcc LFFE8
+            bcc @+
             inc STMCUR+1
-LFFE8       lda (STMCUR),Y
+@           lda (STMCUR),Y
             bpl EXECNL
             jmp X_END
 
