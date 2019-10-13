@@ -709,6 +709,11 @@ ROM_CHMAP   = $E000
 NMI_VEC     = $FFFA
 IRQ_VEC     = $FFFE
 
+; Macro to report size of each segment and number of bytes available
+    .macro  @SEGMENT_SIZE
+        .echo   "-> Segment ", :1, "-", *-1 ,", ", * - :1, " bytes, remaining: ", :2 - *
+    .endm
+
 ; The TurboBasic XL low ram address - adjust to load in bigger DOS
 .if .def tb_lowmem
 TBXL_LOW_ADDRESS = tb_lowmem * $100
@@ -829,7 +834,11 @@ OPSTK       .ds $40
 
 ; Align the variable stack
 ;            org $2100
+        @SEGMENT_SIZE TBXL_LOW_ADDRESS TB_SEGMENT_2
+
             org (* + $FF) & $FF00
+TB_SEGMENT_2
+
 VARSTK0     .ds $20
 VARSTK1     .ds $20
 ARGSTK0     .ds $20
@@ -911,6 +920,7 @@ BLOADFLAG
             .ds 1
         .endif
 
+        @SEGMENT_SIZE TB_SEGMENT_2 TB_SEGMENT_3
 ; Note: Skip this 13 bytes so that DISROM has an address with <(DISROM-1) == >(DISROM-1)
 ;       This is used as return to USR call
 .if .not .def tb_fixes
@@ -921,6 +931,7 @@ BLOADFLAG
         .endif
 .endif ; tb_fixes
 
+TB_SEGMENT_3
 ;            org $2324
 DISROM      lda PORTB
             and #$FC
@@ -971,9 +982,11 @@ L24B3       pha
 
 ;            .byte       0       ; SKIP
 
+        @SEGMENT_SIZE TB_SEGMENT_3 TB_SEGMENT_4
 ; Note: this table needs to be in address with low-part = $1D * 2 = $3A ($XX3A),
 ;       because the first executable token is '<=' at $1D
             org ((* - $3A + $FF) & $FF00) + $3A
+TB_SEGMENT_4
 OPETAB
             .word X_LTE       ; CLE     '<='
             .word X_NEQU      ; CNE     '<>'
@@ -3507,7 +3520,7 @@ BGET_WORD   lda #$07
             def_OPSTK
         .endif
 
-
+        @SEGMENT_SIZE TB_SEGMENT_4 TOP_LOWMEM
 ; This is the end of low memory use
 TOP_LOWMEM
 
@@ -3714,6 +3727,7 @@ LOAD_BUFFER = *
 ; Start of code under ROM, at OS addresses
 ;
             org $C000
+TB_SEGMENT_5
 
 X_DEL       jsr X_GS
             jsr UNFIX_RSTK
@@ -5374,10 +5388,12 @@ PRINT_STR   ldx #$00
             lda #$0B
             jmp CIOV_COME
 
+        @SEGMENT_SIZE TB_SEGMENT_5 $CC00
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Second part
+; Second part, after international character set
 ;
             org $D800
+TB_SEGMENT_6
 
 X_MOVE      jsr GET3INT
             sta L00A2
@@ -6473,10 +6489,12 @@ LDFEE       inc L00AF
             inc SCRADR+1
             bcs LDFC9
 
+        @SEGMENT_SIZE TB_SEGMENT_6 $E000
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Third part, after character map
 ;
             org $E400
+TB_SEGMENT_7
 
 X_LET
 EXEXPR      ldy #$00
@@ -10047,5 +10065,6 @@ LFFE8       lda (STMCUR),Y
 
 SYN_PROMPT_ jmp SNX3
 ;
+        @SEGMENT_SIZE TB_SEGMENT_6 $FFFA
 
 ; vi:syntax=mads
