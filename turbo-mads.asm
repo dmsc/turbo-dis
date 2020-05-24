@@ -5066,9 +5066,10 @@ LC999       bne LC997
             clc
             rts
 
-LC99D       lda #EVLABEL + EVL_EXEC
+; Store into variable table the line address of the PROC or #LABEL.
+SETV_PROC   lda #EVLABEL + EVL_EXEC
             .byte $2C   ; Skip 2 bytes
-LC9A0       lda #EVLABEL + EVL_GOS
+SETV_LBL    lda #EVLABEL + EVL_GOS
             tax
             iny
             lda (L0099),Y
@@ -5079,7 +5080,7 @@ LC9AB       eor #$80
             jsr VAR_PTR
             txa
             cmp (WVVTPT),Y
-            beq LC9E8
+            beq HSH_CONT
             sta (WVVTPT),Y
             lda L0099
             ldy #$02
@@ -5087,53 +5088,58 @@ LC9AB       eor #$80
             iny
             lda L009A
             sta (WVVTPT),Y
-            jmp LC9E8
+            jmp HSH_CONT
 
+; Buils line number hash table and fills PROC/#LABEL addresses.
 GEN_LNHASH  lda L0099
             pha
             lda L009A
             pha
+            ; Start filling with zeroes
             lda #$00
             tay
-LC9CE       sta (LOMEM),Y
+HSH_CLR     sta (LOMEM),Y
             iny
             iny
-            bne LC9CE
+            bne HSH_CLR
+            ; Iterate through all program lines
             lda STMTAB+1
             sta L009A
             lda STMTAB
-LC9DA       sta L0099
+HSH_NXT     sta L0099
             ldy #$04
             lda (L0099),Y
             cmp #TOK_PROC
-            beq LC99D
+            beq SETV_PROC
             cmp #TOK_PND
-            beq LC9A0
-LC9E8       ldy #$01
+            beq SETV_LBL
+HSH_CONT    ldy #$01
             lda (L0099),Y
             asl
-            bcs LCA0A
+            bcs HSH_EPROC
             tay
             lda (LOMEM),Y
-            bne LC9FD
+            bne HSH_DONE  ; Skip already hashed
+            ; Store address of line into hash
             lda L009A
             sta (LOMEM),Y
             iny
             lda L0099
             sta (LOMEM),Y
-LC9FD       clc
+HSH_DONE    clc
             ldy #$02
             lda (L0099),Y
             adc L0099
-            bcc LC9DA
+            bcc HSH_NXT
             inc L009A
-            bcs LC9DA
-LCA0A       lda STMTAB
+            bcs HSH_NXT
+            ; Now, we fill remaining hashes with available lines
+HSH_EPROC   lda STMTAB
             sta L0099
             lda STMTAB+1
             sta L009A
             ldy #$00
-LCA14       lda (LOMEM),Y
+HSH_FILL    lda (LOMEM),Y
             bne LCA24
             lda L009A
             sta (LOMEM),Y
@@ -5146,7 +5152,7 @@ LCA24       sta L009A
             lda (LOMEM),Y
             sta L0099
 LCA2B       iny
-            bne LCA14
+            bne HSH_FILL
             pla
             sta L009A
             pla
@@ -8264,7 +8270,7 @@ PRINTLINE   ldy #$00            ; LLINE in BASIC source
             lda (STMCUR),Y
             jsr CHKELOOP
             beq LF226
-            cmp #$40
+            cmp #TOK_ELSE
             bne LF228
 LF226       dex
             dex
@@ -8445,7 +8451,7 @@ LF383       lda STINDEX
             jsr SKIPTOK
             pla
             sta STINDEX
-            cpx #$1B
+            cpx #CTHEN
             bne LINDENT
             rts
 
