@@ -1582,146 +1582,48 @@ T_FMUL      lda FR0
             sta L00DE
             sta L00DF
             sty FR0
+
+            ; Macro to multiply by a pair of digits
+.macro @MUL_PAIR digit
             ldy #$07
-L26D4       lsr FR1+5
-            bcc L2708
+loop        lsr FR1+:digit
+            bcc skip_add
             clc
-            lda L00DE
+            lda FR0+5+:digit
             adc FPTMP5,Y
-            sta L00DE
-            lda L00DD
+            sta FR0+5+:digit
+            lda FR0+4+:digit
             adc FPTMP4,Y
-            sta L00DD
-            lda L00DC
+            sta FR0+4+:digit
+            lda FR0+3+:digit
             adc FPTMP3,Y
-            sta L00DC
-            lda L00DB
+            sta FR0+3+:digit
+            lda FR0+2+:digit
             adc FPTMP2,Y
-            sta L00DB
-            lda L00DA
+            sta FR0+2+:digit
+            lda FR0+1+:digit
             adc FPTMP1,Y
-            sta L00DA
-            lda FR0+5
+            sta FR0+1+:digit
+            lda FR0+:digit
             adc FPTMP0,Y
-            sta FR0+5
+            sta FR0+:digit
             dey
-            bpl L26D4
-            bmi L270D
-L2708       beq L270D
+            bpl loop
+            bmi end_loop
+
+skip_add    beq end_loop
             dey
-            bpl L26D4
-L270D       ldy #$07
-L270F       lsr FR1+4
-            bcc L2743
-            clc
-            lda L00DD
-            adc FPTMP5,Y
-            sta L00DD
-            lda L00DC
-            adc FPTMP4,Y
-            sta L00DC
-            lda L00DB
-            adc FPTMP3,Y
-            sta L00DB
-            lda L00DA
-            adc FPTMP2,Y
-            sta L00DA
-            lda FR0+5
-            adc FPTMP1,Y
-            sta FR0+5
-            lda FR0+4
-            adc FPTMP0,Y
-            sta FR0+4
-            dey
-            bpl L270F
-            bmi L2748
-L2743       beq L2748
-            dey
-            bpl L270F
-L2748       ldy #$07
-L274A       lsr FR1+3
-            bcc L277E
-            clc
-            lda L00DC
-            adc FPTMP5,Y
-            sta L00DC
-            lda L00DB
-            adc FPTMP4,Y
-            sta L00DB
-            lda L00DA
-            adc FPTMP3,Y
-            sta L00DA
-            lda FR0+5
-            adc FPTMP2,Y
-            sta FR0+5
-            lda FR0+4
-            adc FPTMP1,Y
-            sta FR0+4
-            lda FR0+3
-            adc FPTMP0,Y
-            sta FR0+3
-            dey
-            bpl L274A
-            bmi L2783
-L277E       beq L2783
-            dey
-            bpl L274A
-L2783       ldy #$07
-L2785       lsr FR1+2
-            bcc L27B9
-            clc
-            lda L00DB
-            adc FPTMP5,Y
-            sta L00DB
-            lda L00DA
-            adc FPTMP4,Y
-            sta L00DA
-            lda FR0+5
-            adc FPTMP3,Y
-            sta FR0+5
-            lda FR0+4
-            adc FPTMP2,Y
-            sta FR0+4
-            lda FR0+3
-            adc FPTMP1,Y
-            sta FR0+3
-            lda FR0+2
-            adc FPTMP0,Y
-            sta FR0+2
-            dey
-            bpl L2785
-            bmi L27BE
-L27B9       beq L27BE
-            dey
-            bpl L2785
-L27BE       ldy #$07
-L27C0       lsr FR1+1
-            bcc L27F4
-            clc
-            lda L00DA
-            adc FPTMP5,Y
-            sta L00DA
-            lda FR0+5
-            adc FPTMP4,Y
-            sta FR0+5
-            lda FR0+4
-            adc FPTMP3,Y
-            sta FR0+4
-            lda FR0+3
-            adc FPTMP2,Y
-            sta FR0+3
-            lda FR0+2
-            adc FPTMP1,Y
-            sta FR0+2
-            lda FR0+1
-            adc FPTMP0,Y
-            sta FR0+1
-            dey
-            bpl L27C0
-            bmi L27F9
-L27F4       beq L27F9
-            dey
-            bpl L27C0
+            bpl loop
+end_loop
+.endm
+
+            ; Expands the macro five times (10 digits)
+            @MUL_PAIR 5
+            @MUL_PAIR 4
+            @MUL_PAIR 3
+            @MUL_PAIR 2
+            @MUL_PAIR 1
+
 L27F9       jmp NORMDIVMUL
 L27FC       clc
             rts
@@ -1756,272 +1658,66 @@ T_FDIV      lda FR1
             sta FR1
             sta L00DA
             sty FR0
+
+            ; Performs division of two digits
+.macro @DIV_PAIR digit
             ldy #$00
-L2838       lda FR1
+div_loop    lda FR1+:digit
             cmp FPTMP0,Y
-            bne L2867
-            lda FR1+1
+            bne div_neq
+            lda FR1+1+:digit
             cmp FPTMP1,Y
-            bne L2867
-            lda FR1+2
+            bne div_neq
+            lda FR1+2+:digit
             cmp FPTMP2,Y
-            bne L2867
-            lda FR1+3
+            bne div_neq
+            lda FR1+3+:digit
             cmp FPTMP3,Y
-            bne L2867
-            lda FR1+4
+            bne div_neq
+            lda FR1+4+:digit
             cmp FPTMP4,Y
-            bne L2867
-            lda FR1+5
+            bne div_neq
+            lda FR1+5+:digit
             cmp FPTMP5,Y
-            bne L2867
-            ldx #$00
+            bne div_neq
+            ldx #:digit
             jmp FDIVSKP0
-L2867       bcc L2893
-            lda FR1+5
+div_neq     bcc skip_sub
+            lda FR1+5+:digit
             sbc FPTMP5,Y
-            sta FR1+5
-            lda FR1+4
+            sta FR1+5+:digit
+            lda FR1+4+:digit
             sbc FPTMP4,Y
-            sta FR1+4
-            lda FR1+3
+            sta FR1+4+:digit
+            lda FR1+3+:digit
             sbc FPTMP3,Y
-            sta FR1+3
-            lda FR1+2
+            sta FR1+3+:digit
+            lda FR1+2+:digit
             sbc FPTMP2,Y
-            sta FR1+2
-            lda FR1+1
+            sta FR1+2+:digit
+            lda FR1+1+:digit
             sbc FPTMP1,Y
-            sta FR1+1
-            lda FR1
+            sta FR1+1+:digit
+            lda FR1+:digit
             sbc FPTMP0,Y
-            sta FR1
-L2893       rol FR0+1
+            sta FR1+:digit
+skip_sub    rol FR0+1+:digit
             iny
             cpy #$08
-            bne L2838
-            ldy #$00
-L289C       lda FR1+1
-            cmp FPTMP0,Y
-            bne L28CB
-            lda FR1+2
-            cmp FPTMP1,Y
-            bne L28CB
-            lda FR1+3
-            cmp FPTMP2,Y
-            bne L28CB
-            lda FR1+4
-            cmp FPTMP3,Y
-            bne L28CB
-            lda FR1+5
-            cmp FPTMP4,Y
-            bne L28CB
-            lda L00E6
-            cmp FPTMP5,Y
-            bne L28CB
-            ldx #$01
-            jmp FDIVSKP0
-L28CB       bcc L28F7
-            lda L00E6
-            sbc FPTMP5,Y
-            sta L00E6
-            lda FR1+5
-            sbc FPTMP4,Y
-            sta FR1+5
-            lda FR1+4
-            sbc FPTMP3,Y
-            sta FR1+4
-            lda FR1+3
-            sbc FPTMP2,Y
-            sta FR1+3
-            lda FR1+2
-            sbc FPTMP1,Y
-            sta FR1+2
-            lda FR1+1
-            sbc FPTMP0,Y
-            sta FR1+1
-L28F7       rol FR0+2
-            iny
-            cpy #$08
-            bne L289C
-            ldy #$00
-L2900       lda FR1+2
-            cmp FPTMP0,Y
-            bne L292F
-            lda FR1+3
-            cmp FPTMP1,Y
-            bne L292F
-            lda FR1+4
-            cmp FPTMP2,Y
-            bne L292F
-            lda FR1+5
-            cmp FPTMP3,Y
-            bne L292F
-            lda L00E6
-            cmp FPTMP4,Y
-            bne L292F
-            lda L00E7
-            cmp FPTMP5,Y
-            bne L292F
-            ldx #$02
-            jmp FDIVSKP0
-L292F       bcc L295B
-            lda L00E7
-            sbc FPTMP5,Y
-            sta L00E7
-            lda L00E6
-            sbc FPTMP4,Y
-            sta L00E6
-            lda FR1+5
-            sbc FPTMP3,Y
-            sta FR1+5
-            lda FR1+4
-            sbc FPTMP2,Y
-            sta FR1+4
-            lda FR1+3
-            sbc FPTMP1,Y
-            sta FR1+3
-            lda FR1+2
-            sbc FPTMP0,Y
-            sta FR1+2
-L295B       rol FR0+3
-            iny
-            cpy #$08
-            bne L2900
-            ldy #$00
-L2964       lda FR1+3
-            cmp FPTMP0,Y
-            bne L2993
-            lda FR1+4
-            cmp FPTMP1,Y
-            bne L2993
-            lda FR1+5
-            cmp FPTMP2,Y
-            bne L2993
-            lda L00E6
-            cmp FPTMP3,Y
-            bne L2993
-            lda L00E7
-            cmp FPTMP4,Y
-            bne L2993
-            lda L00E8
-            cmp FPTMP5,Y
-            bne L2993
-            ldx #$03
-            jmp FDIVSKP0
-L2993       bcc L29BF
-            lda L00E8
-            sbc FPTMP5,Y
-            sta L00E8
-            lda L00E7
-            sbc FPTMP4,Y
-            sta L00E7
-            lda L00E6
-            sbc FPTMP3,Y
-            sta L00E6
-            lda FR1+5
-            sbc FPTMP2,Y
-            sta FR1+5
-            lda FR1+4
-            sbc FPTMP1,Y
-            sta FR1+4
-            lda FR1+3
-            sbc FPTMP0,Y
-            sta FR1+3
-L29BF       rol FR0+4
-            iny
-            cpy #$08
-            bne L2964
-            ldy #$00
-L29C8       lda FR1+4
-            cmp FPTMP0,Y
-            bne L29F7
-            lda FR1+5
-            cmp FPTMP1,Y
-            bne L29F7
-            lda L00E6
-            cmp FPTMP2,Y
-            bne L29F7
-            lda L00E7
-            cmp FPTMP3,Y
-            bne L29F7
-            lda L00E8
-            cmp FPTMP4,Y
-            bne L29F7
-            lda L00E9
-            cmp FPTMP5,Y
-            bne L29F7
-            ldx #$04
-            jmp FDIVSKP0
-L29F7       bcc L2A23
-            lda L00E9
-            sbc FPTMP5,Y
-            sta L00E9
-            lda L00E8
-            sbc FPTMP4,Y
-            sta L00E8
-            lda L00E7
-            sbc FPTMP3,Y
-            sta L00E7
-            lda L00E6
-            sbc FPTMP2,Y
-            sta L00E6
-            lda FR1+5
-            sbc FPTMP1,Y
-            sta FR1+5
-            lda FR1+4
-            sbc FPTMP0,Y
-            sta FR1+4
-L2A23       rol FR0+5
-            iny
-            cpy #$08
-            bne L29C8
+            bne div_loop
+.endm
+            ; Call the division for all digits
+            @DIV_PAIR 0
+            @DIV_PAIR 1
+            @DIV_PAIR 2
+            @DIV_PAIR 3
+            @DIV_PAIR 4
+
             lda FR0+1
             bne FDIVEND
-            ldy #$00
-L2A30       lda FR1+5
-            cmp FPTMP0,Y
-            bne L2A5F
-            lda L00E6
-            cmp FPTMP1,Y
-            bne L2A5F
-            lda L00E7
-            cmp FPTMP2,Y
-            bne L2A5F
-            lda L00E8
-            cmp FPTMP3,Y
-            bne L2A5F
-            lda L00E9
-            cmp FPTMP4,Y
-            bne L2A5F
-            lda L00EA
-            cmp FPTMP5,Y
-            bne L2A5F
-            ldx #$05
-            jmp FDIVSKP0
-L2A5F       bcc L2A8B
-            lda L00EA
-            sbc FPTMP5,Y
-            sta L00EA
-            lda L00E9
-            sbc FPTMP4,Y
-            sta L00E9
-            lda L00E8
-            sbc FPTMP3,Y
-            sta L00E8
-            lda L00E7
-            sbc FPTMP2,Y
-            sta L00E7
-            lda L00E6
-            sbc FPTMP1,Y
-            sta L00E6
-            lda FR1+5
-            sbc FPTMP0,Y
-            sta FR1+5
-L2A8B       rol L00DA
-            iny
-            cpy #$08
-            bne L2A30
+
+            @DIV_PAIR 5
+
 FDIVEND     jmp NORMDIVMUL
 
 FDIVSKP0    rol FR0+1,X ; Skip if remainder is 0 at end of FDIV
