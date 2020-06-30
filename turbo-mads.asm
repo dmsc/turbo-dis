@@ -523,6 +523,7 @@ LOG10       = $DED1
 ; BASIC FLOATING POINT TABLES
 ;
 P10COF      = $DE4D
+LOG10E      = $DE89
 SQR10       = $DF66
 LGCOEF      = $DF72
 ATNCOEF     = $DFAE
@@ -688,8 +689,7 @@ ZTEMP4      = $F7
 ZTEMP3      = $F9
 
 DEGFLAG     = $00FB
-L00FC       = $00FC
-L00FD       = $00FD
+FLPTR       = $00FC
 
 SIX         = $0480
 SOX         = $0481
@@ -942,9 +942,9 @@ DISROM      lda PORTB
         .macro def_NMI_PROC
 .def :NMI_PROC
             bit NMIST   ; 37
-            bpl L24B3
+            bpl @+
             jmp (VDSLST)
-L24B3       pha
+@           pha
             txa
             pha
             lda #>NMI_END
@@ -1575,12 +1575,12 @@ T_FMUL      lda FR0
             ora L00EE
             tay
             jsr EXPAND_POW2
-            sta L00DA
-            sta L00DB
-            sta L00DC
-            sta L00DD
-            sta L00DE
-            sta L00DF
+            sta FR0+6
+            sta FR0+7
+            sta FR0+8
+            sta FR0+9
+            sta FR0+10
+            sta FR0+11
             sty FR0
 
             ; Macro to multiply by a pair of digits
@@ -1650,13 +1650,13 @@ T_FDIV      lda FR1
             ora L00EE
             tay
             jsr EXPAND_POW2
-            sta L00E6
-            sta L00E7
-            sta L00E8
-            sta L00E9
-            sta L00EA
+            sta FR1+6
+            sta FR1+7
+            sta FR1+8
+            sta FR1+9
+            sta FR1+10
             sta FR1
-            sta L00DA
+            sta FR0+6
             sty FR0
 
             ; Performs division of two digits
@@ -1727,101 +1727,52 @@ FDIVSKP0    rol FR0+1,X ; Skip if remainder is 0 at end of FDIV
             beq FDIVEND
 
 EXPAND_POW2 sed
+            ; First part: FPTMP*+7 = FR1
+            ;             FMTMP*+6 = FR1 * 2
             clc
-            lda FR1+5
-            sta FPTMP5+7
-            adc FR1+5
-            sta FPTMP5+6
-            lda FR1+4
-            sta FPTMP4+7
-            adc FR1+4
-            sta FPTMP4+6
-            lda FR1+3
-            sta FPTMP3+7
-            adc FR1+3
-            sta FPTMP3+6
-            lda FR1+2
-            sta FPTMP2+7
-            adc FR1+2
-            sta FPTMP2+6
-            lda FR1+1
-            sta FPTMP1+7
-            adc FR1+1
-            sta FPTMP1+6
+    .rept 5, 5-#
+            lda FR1+:1
+            sta FPTMP:1+7
+            adc FR1+:1
+            sta FPTMP:1+6
+    .endr
             lda #$00
             sta FPTMP0+7
             adc #$00
             sta FPTMP0+6
+            ; Second part: FPTMP*+5 = FR1 * 4
+            ;              FPTMP*+4 = FR1 * 8
             ldx #$02
-L2ADE       lda FPTMP5+4,X
-            adc FPTMP5+4,X
-            sta FPTMP5+3,X
-            lda FPTMP4+4,X
-            adc FPTMP4+4,X
-            sta FPTMP4+3,X
-            lda FPTMP3+4,X
-            adc FPTMP3+4,X
-            sta FPTMP3+3,X
-            lda FPTMP2+4,X
-            adc FPTMP2+4,X
-            sta FPTMP2+3,X
-            lda FPTMP1+4,X
-            adc FPTMP1+4,X
-            sta FPTMP1+3,X
-            lda FPTMP0+4,X
-            adc FPTMP0+4,X
-            sta FPTMP0+3,X
+@   .rept 6, 5-#
+            lda FPTMP:1+4,X
+            adc FPTMP:1+4,X
+            sta FPTMP:1+3,X
+    .endr
             dex
-            bne L2ADE
-            lda FPTMP5+6
-            adc FPTMP5+4
-            sta FPTMP5+3
-            lda FPTMP4+6
-            adc FPTMP4+4
-            sta FPTMP4+3
-            lda FPTMP3+6
-            adc FPTMP3+4
-            sta FPTMP3+3
-            lda FPTMP2+6
-            adc FPTMP2+4
-            sta FPTMP2+3
-            lda FPTMP1+6
-            adc FPTMP1+4
-            sta FPTMP1+3
-            lda FPTMP0+6
-            adc FPTMP0+4
-            sta FPTMP0+3
+            bne @-
+            ; Third part: FPTMP*+3 = FR1 * 8 + FR1 * 2 = FR1 * 10
+    .rept 6, 5-#
+            lda FPTMP:1+6
+            adc FPTMP:1+4
+            sta FPTMP:1+3
+    .endr
+            ; Foruth part: FPTMP*+2 = FR1 * 20
+            ;              FPTMP*+1 = FR1 * 40
+            ;              FPTMP*   = FR1 * 80
             ldx #$02
-L2B4F       lda FPTMP5+1,X
-            adc FPTMP5+1,X
-            sta FPTMP5,X
-            lda FPTMP4+1,X
-            adc FPTMP4+1,X
-            sta FPTMP4,X
-            lda FPTMP3+1,X
-            adc FPTMP3+1,X
-            sta FPTMP3,X
-            lda FPTMP2+1,X
-            adc FPTMP2+1,X
-            sta FPTMP2,X
-            lda FPTMP1+1,X
-            adc FPTMP1+1,X
-            sta FPTMP1,X
-            lda FPTMP0+1,X
-            adc FPTMP0+1,X
-            sta FPTMP0,X
+@   .rept 6, 5-#
+            lda FPTMP:1+1,X
+            adc FPTMP:1+1,X
+            sta FPTMP:1,X
+    .endr
             dex
-            bpl L2B4F
-            lda FR0+1
-            sta FR1+1
-            lda FR0+2
-            sta FR1+2
-            lda FR0+3
-            sta FR1+3
-            lda FR0+4
-            sta FR1+4
-            lda FR0+5
-            sta FR1+5
+            bpl @-
+
+            ; Move FR0 to FR1
+    .rept 5
+            lda FR0+1+#
+            sta FR1+1+#
+    .endr
 
 T_ZFR0      lda #$00
             sta FR0
@@ -1861,13 +1812,45 @@ T_GETDIGIT  ldy CIX
             cmp #$0A
             rts
 
+            ; Adds a power-of-two in BCD to the number in A,Y,FR0+1 if the C is set.
+.macro @ADD_BIT num
+            bcc skip
+            adc #<:num
+  .if :num < $4FF
+    :>:num  iny
+    .if :num > $4F
+            bcc skip
+            iny
+    .endif
+  .else
+            tax
+            tya
+            adc #>:num
+            tay
+    .if :num > $FFFF
+            lda FR0+1
+            adc #^:num
+            sta FR0+1
+            txa
+    .elseif :num > $4FFF
+            txa
+            bcc skip
+            inc FR0+1
+    .else
+            txa
+    .endif
+  .endif
+skip
+.endm
+
 T_IFP       ldy FR0
             lda FR0+1
             sta ZTEMP4
             jsr T_ZFR0
             sed
             tya
-            beq L2C17
+            beq IFP_BYTE2       ; First byte is 0, skip
+            ; First get the lowest 3 bits directly
             lsr
             lsr
             lsr
@@ -1876,99 +1859,35 @@ T_IFP       ldy FR0
             tya
             and #$07
             ldy #$00
-            bcc L2BF8
-            adc #$0007
-L2BF8       lsr ZTEMP4+1
-            bcc L2BFE
-            adc #$0015
-L2BFE       lsr ZTEMP4+1
-            bcc L2C04
-            adc #$0031
-L2C04       lsr ZTEMP4+1
-            bcc L2C0D
-            adc #$0063
-            bcc L2C0D
-            iny
-L2C0D       lsr ZTEMP4+1
-            bcc L2C17
-            adc #<$0127
-            iny
-            bcc L2C17
-            iny
-L2C17       ldx ZTEMP4
-            beq L2C8A
+            ; Test each remaining bit and add the BCD equivalent if set
+            @ADD_BIT $00007
+            lsr ZTEMP4+1
+            @ADD_BIT $00015
+            lsr ZTEMP4+1
+            @ADD_BIT $00031
+            lsr ZTEMP4+1
+            @ADD_BIT $00063
+            lsr ZTEMP4+1
+            @ADD_BIT $00127
+IFP_BYTE2   ldx ZTEMP4
+            beq IFP_END         ; If second byte is 0, we are done
             lsr ZTEMP4
-            bcc L2C26
-            adc #<$0255
-            iny
-            iny
-            bcc L2C26
-            iny
-L2C26       lsr ZTEMP4
-            bcc L2C32
-            adc #<$0511
-            tax
-            tya
-            adc #>$0511
-            tay
-            txa
-L2C32       lsr ZTEMP4
-            bcc L2C3E
-            adc #<$1023
-            tax
-            tya
-            adc #>$1023
-            tay
-            txa
-L2C3E       lsr ZTEMP4
-            bcc L2C4A
-            adc #<$2047
-            tax
-            tya
-            adc #>$2047
-            tay
-            txa
-L2C4A       lsr ZTEMP4
-            bcc L2C56
-            adc #<$4095
-            tax
-            tya
-            adc #>$4095
-            tay
-            txa
-L2C56       lsr ZTEMP4
-            bcc L2C66
-            adc #<$8191
-            tax
-            tya
-            adc #>$8191
-            tay
-            txa
-            bcc L2C66
-            inc FR0+1
-L2C66       lsr ZTEMP4
-            bcc L2C78
-            adc #<$6383 ; $16383
-            tax
-            tya
-            adc #>$6383 ; $16383
-            tay
-            lda FR0+1
-            adc #$01    ; $16383
-            sta FR0+1
-            txa
-L2C78       lsr ZTEMP4
-            bcc L2C8A
-            adc #<$2767 ; $32737
-            tax
-            tya
-            adc #>$2767 ; $32767
-            tay
-            lda FR0+1
-            adc #$03    ; $32767
-            sta FR0+1
-            txa
-L2C8A       sty FR0+2
+            @ADD_BIT $00255
+            lsr ZTEMP4
+            @ADD_BIT $00511
+            lsr ZTEMP4
+            @ADD_BIT $01023
+            lsr ZTEMP4
+            @ADD_BIT $02047
+            lsr ZTEMP4
+            @ADD_BIT $04095
+            lsr ZTEMP4
+            @ADD_BIT $08191
+            lsr ZTEMP4
+            @ADD_BIT $16383
+            lsr ZTEMP4
+            @ADD_BIT $32767
+IFP_END     sty FR0+2
             sta FR0+3
             lda #$42
             sta FR0
@@ -1989,34 +1908,18 @@ T_FADD      lda FR1
             and #$7F
             sec
             sbc ZTEMP4
-            bcs L2CE1
-            lda FR0
-            ldy FR1
-            sta FR1
-            sty FR0
-            lda FR0+1
-            ldy FR1+1
-            sta FR1+1
-            sty FR0+1
-            lda FR0+2
-            ldy FR1+2
-            sta FR1+2
-            sty FR0+2
-            lda FR0+3
-            ldy FR1+3
-            sta FR1+3
-            sty FR0+3
-            lda FR0+4
-            ldy FR1+4
-            sta FR1+4
-            sty FR0+4
-            lda FR0+5
-            ldy FR1+5
-            sta FR1+5
-            sty FR0+5
+            bcs ADD_NOSWAP
+            ; If negative result, swap operands and retry
+    .rept 6
+            lda FR0+#
+            ldy FR1+#
+            sta FR1+#
+            sty FR0+#
+    .endr
             jmp T_FADD
-L2CE1       tay
+ADD_NOSWAP  tay
             beq FADD_OK
+            ; Exponents differ, move right smaller operand before adding
             dey
             beq FADD_M1
             dey
@@ -2025,12 +1928,14 @@ L2CE1       tay
             beq FADD_M3
             dey
             bne RET_CLC2
+            ; Move by 4
             lda FR1+1
             sta FR1+5
             sty FR1+4
             sty FR1+3
             sty FR1+2
             jmp FADD_MOK
+            ; Move by 3
 FADD_M3     lda FR1+2
             sta FR1+5
             lda FR1+1
@@ -2038,6 +1943,7 @@ FADD_M3     lda FR1+2
             sty FR1+3
             sty FR1+2
             jmp FADD_MOK
+            ; Move by 2
 FADD_M2     lda FR1+3
             sta FR1+5
             lda FR1+2
@@ -2046,6 +1952,7 @@ FADD_M2     lda FR1+3
             sta FR1+3
             sty FR1+2
             jmp FADD_MOK
+            ; Move by 1
 FADD_M1     lda FR1+4
             sta FR1+5
             lda FR1+3
@@ -2055,27 +1962,18 @@ FADD_M1     lda FR1+4
             lda FR1+1
             sta FR1+2
 FADD_MOK    sty FR1+1
+            ; Check if we need ADD or SUB
 FADD_OK     sed
             lda FR0
             eor FR1
-            bmi L2D70
+            bmi DO_SUB
             clc
-            lda FR0+5
-            adc FR1+5
-            sta FR0+5
-            lda FR0+4
-            adc FR1+4
-            sta FR0+4
-            lda FR0+3
-            adc FR1+3
-            sta FR0+3
-            lda FR0+2
-            adc FR1+2
-            sta FR0+2
-            lda FR0+1
-            adc FR1+1
-            sta FR0+1
-            bcc L2D6D
+    .rept 5, 5-#
+            lda FR0+:1
+            adc FR1+:1
+            sta FR0+:1
+    .endr
+            bcc @+
             lda FR0+4
             sta FR0+5
             lda FR0+3
@@ -2087,53 +1985,34 @@ FADD_OK     sed
             lda #$01
             sta FR0+1
             inc FR0
-L2D6D       jmp NORMALIZE
+@           jmp NORMALIZE
 
-L2D70       sec
-            lda FR0+5
-            sbc FR1+5
-            sta FR0+5
-            lda FR0+4
-            sbc FR1+4
-            sta FR0+4
-            lda FR0+3
-            sbc FR1+3
-            sta FR0+3
-            lda FR0+2
-            sbc FR1+2
-            sta FR0+2
-            lda FR0+1
-            sbc FR1+1
-            sta FR0+1
+DO_SUB      sec
+    .rept 5, 5-#
+            lda FR0+:1
+            sbc FR1+:1
+            sta FR0+:1
+    .endr
             bcs NORMALIZE
+            ; SUB was negative, negate number
             lda FR0
             eor #$80
             sta FR0
             sec
+    .rept 5, 5-#
             tya
-            sbc FR0+5
-            sta FR0+5
-            tya
-            sbc FR0+4
-            sta FR0+4
-            tya
-            sbc FR0+3
-            sta FR0+3
-            tya
-            sbc FR0+2
-            sta FR0+2
-            tya
-            sbc FR0+1
-            sta FR0+1
+            sbc FR0+:1
+            sta FR0+:1
+    .endr
             jmp NORMALIZE
 
-NORMDIVMUL  ldx L00DA
-            bne L2DBA
+NORMDIVMUL  ldx FR0+6
+            bne @+
 
 NORMALIZE   ldx #$00
-L2DBA       cld
+@           cld
             ldy FR0
-            beq L2E2C
+            beq NORM_SET0
             lda FR0+1
             bne NORM_MOK
             dey
@@ -2150,9 +2029,11 @@ L2DBA       cld
             bne NORM_M4
             dey
             txa
-            beq L2E2C
+            beq NORM_SET0
+            ; Move by 5
             sta FR0+1
             bne NORM_MOK
+            ; Move by 4
 NORM_M4     sta FR0+1
             stx FR0+2
             lda #$00
@@ -2160,6 +2041,7 @@ NORM_M4     sta FR0+1
             sta FR0+4
             sta FR0+3
             beq NORM_MOK
+            ; Move by 3
 NORM_M3     sta FR0+1
             lda FR0+5
             sta FR0+2
@@ -2168,6 +2050,7 @@ NORM_M3     sta FR0+1
             sta FR0+5
             sta FR0+4
             beq NORM_MOK
+            ; Move by 2
 NORM_M2     sta FR0+1
             lda FR0+4
             sta FR0+2
@@ -2177,6 +2060,7 @@ NORM_M2     sta FR0+1
             lda #$00
             sta FR0+5
             beq NORM_MOK
+            ; Move by 1
 NORM_M1     sta FR0+1
             lda FR0+3
             sta FR0+2
@@ -2188,110 +2072,78 @@ NORM_M1     sta FR0+1
 NORM_MOK    sty FR0
             tya
             and #$7F
-            cmp #$71
-            bcs L2E30
-            cmp #$0F
-            bcs L2E2F
-L2E2C       jsr T_ZFR0
-L2E2F       clc
-L2E30       rts
+            cmp #$71    ; Check overflow
+            bcs NORM_OV
+            cmp #$0F    ; Check underflow
+            bcs NORM_OK
+NORM_SET0   jsr T_ZFR0
+NORM_OK     clc
+NORM_OV     rts
 
-T_PLYEVL    stx L00FC
-            sty L00FD
+T_PLYEVL    stx FLPTR
+            sty FLPTR+1
             sta L00EF
             jsr FMOVPLYARG
             jsr T_FLD1P
             dec L00EF
-L2E3F       jsr T_FMUL
-            bcs L2E7B
-            lda L00FC
+PLY_LOOP    jsr T_FMUL
+            bcs PLY_END
+            lda FLPTR
             adc #$06
-            sta L00FC
-            bcc L2E4E
-            inc L00FD
-L2E4E       jsr T_FLD1P
+            sta FLPTR
+            bcc @+
+            inc FLPTR+1
+@           jsr T_FLD1P
             jsr T_FADD
-            bcs L2E7B
+            bcs PLY_END
             dec L00EF
-            beq L2E7B
-            lda PLYARG
-            sta FR1
-            lda PLYARG+1
-            sta FR1+1
-            lda PLYARG+2
-            sta FR1+2
-            lda PLYARG+3
-            sta FR1+3
-            lda PLYARG+4
-            sta FR1+4
-            lda PLYARG+5
-            sta FR1+5
-            jmp L2E3F
-L2E7B       rts
+            beq PLY_END
+    .rept 6
+            lda PLYARG+#
+            sta FR1+#
+    .endr
+            jmp PLY_LOOP
+PLY_END     rts
 
 T_FLD1P     ldy #$05
-            lda (L00FC),Y
+            lda (FLPTR),Y
             sta FR1+5
             dey
-            lda (L00FC),Y
+            lda (FLPTR),Y
             sta FR1+4
             dey
-            lda (L00FC),Y
+            lda (FLPTR),Y
             sta FR1+3
             dey
-            lda (L00FC),Y
+            lda (FLPTR),Y
             sta FR1+2
             dey
-            lda (L00FC),Y
+            lda (FLPTR),Y
             sta FR1+1
             dey
-            lda (L00FC),Y
+            lda (FLPTR),Y
             sta FR1
             rts
 
             ; Move FR0 to FR1
-T_FMOVE     lda FR0
-            sta FR1
-            lda FR0+1
-            sta FR1+1
-            lda FR0+2
-            sta FR1+2
-            lda FR0+3
-            sta FR1+3
-            lda FR0+4
-            sta FR1+4
-            lda FR0+5
-            sta FR1+5
+T_FMOVE .rept 6
+            lda FR0+#
+            sta FR1+#
+        .endr
             rts
 
             ; Move FR0 to PLYARG
-FMOVPLYARG  lda FR0
-            sta PLYARG+0
-            lda FR0+1
-            sta PLYARG+1
-            lda FR0+2
-            sta PLYARG+2
-            lda FR0+3
-            sta PLYARG+3
-            lda FR0+4
-            sta PLYARG+4
-            lda FR0+5
-            sta PLYARG+5
+FMOVPLYARG .rept 6
+            lda FR0+#
+            sta PLYARG+#
+           .endr
             rts
 
             ; Move FR0 to FPSCR
-FMOVSCR     lda FR0
-            sta FPSCR+0
-            lda FR0+1
-            sta FPSCR+1
-            lda FR0+2
-            sta FPSCR+2
-            lda FR0+3
-            sta FPSCR+3
-            lda FR0+4
-            sta FPSCR+4
-            lda FR0+5
-            sta FPSCR+5
+FMOVSCR .rept 6
+            lda FR0+#
+            sta FPSCR+#
+        .endr
             rts
 
             ; Load FR0 from PLYARG
@@ -2304,18 +2156,10 @@ LDFPSCR     ldx #$06
 
             ; Load FR0 from FPSCR1
 LDFPSCR1    ldx #$0C
-LD_PLY_X    lda PLYARG+0,X
-            sta FR0
-            lda PLYARG+1,X
-            sta FR0+1
-            lda PLYARG+2,X
-            sta FR0+2
-            lda PLYARG+3,X
-            sta FR0+3
-            lda PLYARG+4,X
-            sta FR0+4
-            lda PLYARG+5,X
-            sta FR0+5
+LD_PLY_X  .rept 6
+            lda PLYARG+#,X
+            sta FR0+#
+          .endr
             rts
 
             ; Load FR1 from FPSCR1
@@ -2324,25 +2168,17 @@ LD1FPSCR1   ldx #$0C
 
             ; Load FR1 from FPSCR
 LD1FPSCR    ldx #$06
-LD1_PLY_X   lda PLYARG+0,X
-            sta FR1
-            lda PLYARG+1,X
-            sta FR1+1
-            lda PLYARG+2,X
-            sta FR1+2
-            lda PLYARG+3,X
-            sta FR1+3
-            lda PLYARG+4,X
-            sta FR1+4
-            lda PLYARG+5,X
-            sta FR1+5
+LD1_PLY_X .rept 6
+            lda PLYARG+#,X
+            sta FR1+#
+          .endr
 L2F43       rts
 
             ; Calculate FR0 = EXP(FR0)
             ; $DDC0 in original mathpack
 T_FEXP      ldx #$05
             inc PORTB
-L2F49       lda LDE89,X
+L2F49       lda LOG10E,X
             sta FR1,X
             dex
             bpl L2F49
@@ -2415,8 +2251,8 @@ T_FLD1      lda #$40
             ; Compute FR0 = (FR0 - C) / (FR1 + C)
             ; with C in [X:Y]
             ; $DE95 in original mathpack
-REDRNG      stx L00FC
-            sty L00FD
+REDRNG      stx FLPTR
+            sty FLPTR+1
             jsr FMOVPLYARG
             jsr T_FLD1P
             jsr T_FADD
@@ -2492,7 +2328,7 @@ L3053       sta FR0
             ldx L00F0
             beq RTS_CLC
             inc PORTB
-L306E       lda LDE89,X
+L306E       lda LOG10E,X
             sta FR1,X
             dex
             bpl L306E
@@ -2645,44 +2481,38 @@ L31B5       lda F_1DEG,X
             bpl L31B5
             jsr T_FDIV
 L31C0       rts
-L31C1       sec
+
+SQRT_NEG    sec
             rts
-L31C3       clc
+SQRT_0      clc
             rts
 
 T_FSQRT     lda #$00
             sta L00F1
             lda FR0
-            bmi L31C1
-            beq L31C3
-            cmp #$3F
-            beq L31D8
+            bmi SQRT_NEG
+            beq SQRT_0
+            cmp #$3F    ; 0.01 < X < 1 , don't need adjustment at end
+            beq @+
             clc
             adc #$01
             sta L00F1
-L31D8       lda #$06
+@           lda #$06
             sta L00EF
             lda #$3F
             sta FR0
-            jsr FMOVSCR
-            jsr T_FMOVE
+            jsr FMOVSCR ; Store original X
+            jsr T_FMOVE ; Get starting iteration value
             jsr T_FLD1
             inc FR0+1
             jsr T_FSUB
             jsr LD1FPSCR
             jsr T_FMUL
-L31F4       lda FR0
-            sta FPSCR1+0
-            lda FR0+1
-            sta FPSCR1+1
-            lda FR0+2
-            sta FPSCR1+2
-            lda FR0+3
-            sta FPSCR1+3
-            lda FR0+4
-            sta FPSCR1+4
-            lda FR0+5
-            sta FPSCR1+5
+            ; Iteration loop: Z' = Z + (Z / X - Z)/2
+SQRT_LP   .rept 6
+            lda FR0+#
+            sta FPSCR1+#
+          .endr
             jsr T_FMOVE
             jsr LDFPSCR
             jsr T_FDIV
@@ -2690,24 +2520,25 @@ L31F4       lda FR0
             jsr T_FSUB
             jsr FPHALF
             lda FR0
-            beq L3234
+            beq SQRT_SKIP       ; We are already adding 0, skip rest of iterations
             jsr LD1FPSCR1
             jsr T_FADD
             dec L00EF
-            bpl L31F4
-            bmi L3237
-L3234       jsr LDFPSCR1
-L3237       lda L00F1
-            beq L324A
+            bpl SQRT_LP
+            bmi SQRT_END
+
+SQRT_SKIP   jsr LDFPSCR1
+SQRT_END    lda L00F1
+            beq SQRT_OK
             lsr
             clc
             adc FR0
             sbc #$1F
             sta FR0
             lsr L00F1
-            bcc L324A
+            bcc SQRT_OK
             jsr FMUL10
-L324A       clc
+SQRT_OK     clc
             rts
 
 L324C       jmp T_ZFR0
@@ -5608,26 +5439,26 @@ LDBC3       lda #$00
             lda FR1+1
             and #$F0
             lsr
-            sta L00FC
+            sta FLPTR
             lsr
             lsr
-            adc L00FC
-            sta L00FC
+            adc FLPTR
+            sta FLPTR
             lda FR1+1
             and #$0F
-            adc L00FC
-            sta L00FC
+            adc FLPTR
+            sta FLPTR
             jsr FMOVPLYARG
-            lsr L00FC
+            lsr FLPTR
             bcs LDBF6
             jsr T_FLD1
 LDBF6       jsr FMOVSCR
-            lda L00FC
+            lda FLPTR
             beq LDC4D
             jsr LDPLYARG
 LDC00       jsr T_FSQ
             bcs ERR_11_
-            lsr L00FC
+            lsr FLPTR
             bcc LDC00
             jsr FMOVPLYARG
             jsr LD1FPSCR
@@ -5965,7 +5796,7 @@ X_CIRCLE    jsr GET3INT
             pha
             ldy STINDEX
             iny
-LDE89       cpy NXTSTD
+            cpy NXTSTD
             bcs LDE92
             jsr GETINT
             bne ERR_3G
