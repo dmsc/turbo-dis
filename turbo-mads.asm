@@ -1349,14 +1349,14 @@ X_DPOKE     jsr GET2INT
             sta (L009B),Y
             lda FR0+1
             iny
-            bne L254C
+            bne C_POKE
 
 ERR_3C      jmp ERR_3
 
 X_POKE      jsr GET2INT
             bne ERR_3C
             inc PORTB
-L254C       sta (L009B),Y
+C_POKE      sta (L009B),Y
             lda PORTB
             and #$FC
             ora #$02
@@ -1375,15 +1375,15 @@ DO_USR      lda #>(DISROM-1)
             pha
             lda COMCNT
             sta L00C6
-L256A       jsr X_POPINT
+USR_NARG    jsr X_POPINT
             dec L00C6
-            bmi L257A
+            bmi USR_OK
             lda FR0
             pha
             lda FR0+1
             pha
-            jmp L256A
-L257A       inc PORTB
+            jmp USR_NARG
+USR_OK      inc PORTB
             lda COMCNT
             pha
             jmp (FR0)
@@ -1401,12 +1401,12 @@ EXPAND      sty L00A4
             lda TOPRSTK+1
             adc L00A5
             cmp MEMTOP+1
-            bcc L25A4
+            bcc MEM_OK
             bne ERR_2_
             cpy MEMTOP
-            bcc L25A4
+            bcc MEM_OK
             bne ERR_2_
-L25A4       sec
+MEM_OK      sec
             lda TOPRSTK
             sbc $00,X
             sta L00A2
@@ -1424,7 +1424,8 @@ L25A4       sec
             sta L009A
             adc L00A5
             sta L009C
-L25C6       lda $00,X
+            ; Move memory pointers up
+@           lda $00,X
             adc L00A4
             sta $00,X
             lda NGFLAG,X
@@ -1433,7 +1434,7 @@ L25C6       lda $00,X
             inx
             inx
             cpx #$92
-            bcc L25C6
+            bcc @-
             sta APPMHI+1
             lda TOPRSTK
             sta APPMHI
@@ -2423,7 +2424,7 @@ SCOEF       .fl -3.551499391e-6
             .fl -4.6817543551e-3
             .byte $3F,$07,$96,$92,$62,$39 ; .fl 7.96926239e-2 ; MADS error
             .fl -6.459640867e-1
-F_PI2       .fl 1.570796326  ; used in RAD mode
+F_PI2       .fl 1.570796324  ; used in RAD mode
             .fl 90           ; used in DEG mode
 F_1DEG      .byte $3f, $01, $74, $53, $29, $25 ; = PI / 180
             ;.fl 0.01745329251994 ; can't make mads produce the last digit!!!
