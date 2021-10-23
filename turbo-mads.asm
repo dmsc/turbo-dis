@@ -730,9 +730,14 @@ TBXL_ROMLOADER = $6000
 ;
 ; Start of loader
 ;
+.if .not .def tb_fixes
             ; Adjust MEMLO
+            ; This is not needed with new version, as the MEMLO value
+            ; is always hard-coded in the binary, so by not changing it
+            ; we have a smaller binary.
             org MEMLO
             .word TOP_LOWMEM
+.endif
 
             ; Load character definitions for chars 64-95
             org RAM_CHMAP + $200
@@ -812,10 +817,15 @@ RESET_V     lda #<RESET_V
 JMPDOS      jsr $0000
             lda #$FE
             sta PORTB
+.if .not .def tb_fixes
+            ; Restore original MEMLO value after returning from DOS
+            ; This is not needed in the new version, as we use a fixed value
+            ; for the start of the BASIC memory.
             lda LOMEM
             ldy LOMEM+1
             sta MEMLO
             sty MEMLO+1
+.endif
             jmp COLDSTART
 .def :RESET_V = RESET_V
 .def :JMPDOS = JMPDOS
@@ -913,9 +923,19 @@ DEV_S_      .byte 'S:', CR
 DEV_C_      .byte 'C:', CR
 DEV_P_      .byte 'P:', CR
 
+        .macro def_PDUM_ROM
+; Calls PUTCHAR from IO channel X
+.def :PDUM_ROM
+            inc PORTB   ; 10
+            jsr PDUM
+            dec PORTB
+            rts
+        .endm
+
 BLOADFLAG
         .if .def tb_lowmem
             .byte       0
+            def_PDUM_ROM
         .else
             .ds 1
         .endif
@@ -1288,11 +1308,9 @@ IRQ_END     dec PORTB
             def_NMI_PROC
         .endif
 
-; Calls PUTCHAR from IO channel X
-PDUM_ROM    inc PORTB   ; 10
-            jsr PDUM
-            dec PORTB
-            rts
+        .if .not .def tb_lowmem
+            def_PDUM_ROM
+        .endif
 
 ; Calls PUTCHAR from IO channel X
 PDUM        lda IOCB0+ICPTH,X   ; 12
@@ -6314,8 +6332,13 @@ VAR_PTR     asl
 INIT_MEM    lda #$00
             sta MEOLFLG
             sta LOADFLG
+.if .def tb_fixes
+            lda #<TOP_LOWMEM
+            ldy #>TOP_LOWMEM
+.else
             lda MEMLO
             ldy MEMLO+1
+.endif
             sta LOMEM
             sty LOMEM+1
             iny
