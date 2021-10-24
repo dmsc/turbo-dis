@@ -18,3 +18,51 @@ many comments.
 This code was tested to assemble at different address than the original binary
 without breaking.
 
+Fixed Bugs
+----------
+
+The source has fixes for a few interpreter bugs present in all other TurboBasic XL
+versions:
+
+ - When adding or deleting lines when inside a `FOR` loop, the runtime stack is
+   not correctly adjusted, for example this program:
+
+   ```
+   10 ? "START"
+   20 FOR J=0 TO 10
+   25 ? "J=";J
+   30 IF J=5 THEN DEL 10,10
+   40 NEXT J
+   50 END
+   ```
+
+   The interpreter exits the `FOR` on the iteration 5, instead of counting up
+   to 10.
+
+ - A bug with the parsing of `IF` statements without `ENDIF`, the end of
+   statement is incorrectly checked. This is an example program:
+
+   ```
+   10 ? 1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1:? 1;1;1;1;1;1;1;1;1;1;;;;;;:IF 1
+   20 ENDIF
+   ```
+
+   If you remove one "`;`", the program runs correctly, but as shown it prints
+   "`ERROR 12`".
+
+ - In the `PRINT` statement, if the last token printed ends in `$12` or `$15`,
+   for example a `CONTROL-R` or `CONTROL-U` character on a string, the
+   interpreter omits the new-line at the end, as it incorrectly assumes that
+   the statement ended in a "`,`" or "`;`".
+
+   This program shows the problematic statements:
+
+   ```
+   20 ? "LINE 1:x" : REM   Ok, prints a new-line at end
+   30 ? "LINE 1:─" : REM   BUG, does not print the new-line
+   40 ? "LINE 1:▄" : REM   BUG, same as above
+   60 ? "LINE 1:";1.23456713 : REM   OK, prints a new-line at end
+   50 ? "LINE 1:";1.23456712 : REM   BUG, does not print the new-line
+   70 ? "LINE 1:";1.23456715 : REM   BUG, same as above
+   ```
+
