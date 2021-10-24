@@ -32,11 +32,11 @@ clean:
 	rm -f $(FILES)
 
 # Assemble using MADS to a ".com" file, includes fixes
-bin/tb.com: turbo-mads.asm
+bin/tb.com: turbo-mads.asm turbo-loader.asm equates.asm
 	mads $(MADS_DEF) $< -o:$@ -l:$(@:.com=.lst)
 
 # Assemble using MADS to a ".com" file, original version
-bin/tb15.com: turbo-mads.asm
+bin/tb15.com: turbo-mads.asm turbo-loader.asm equates.asm
 	mads $< -o:$@ -l:$(@:.com=.lst)
 
 # Checks that generated binary is same as original
