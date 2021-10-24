@@ -2,7 +2,7 @@
 ;;                                                            ;;
 ;; TurboBasic XL v1.5 disassembly, in MADS format.            ;;
 ;;                                                            ;;
-;; Disassembled and translated to MADS by dmsc.               ;;
+;; Disassembled and translated to MADS by dmsc, 2017-2021     ;;
 ;;                                                            ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -81,8 +81,19 @@ LOAD_MSG    .byte $7d, CR
             .byte $7f, $7f, $20, $00, $01, $02, $03, $04, $05, $06, $07, CR
             .byte $7f, $7f, $08, $09, $0A, $0B, $0C, $0D, $0E, $0F, $10, CR
             .byte CR
+.if .not .def tb_fixes
             .byte $7f, '    TURBO-BASIC XL 1.5', CR
+.else
+    .if .def tb_lowmem
+            .byte $7f, '   TURBO-BASIC XL 1.5-R', CR
+    .else
+            .byte $7f, '   TURBO-BASIC XL 1.5-F', CR
+    .endif
+.endif
             .byte $7f, ' (c) 1985 Frank Ostrowski', CR
+.if .def tb_fixes
+            .byte '  Fixes and relocatable by DMSC 2021', CR
+.endif
             .byte CR
 END_LOAD_MSG
 

@@ -18,6 +18,30 @@ many comments.
 This code was tested to assemble at different address than the original binary
 without breaking.
 
+Relocation
+----------
+
+The provided Makefile generates a version of the interpreter that relocates
+itself to the lowest address posible, by reading MEMLO and copying the code to
+just above the value. This gives more memory to the BASIC programs, depending
+on the DOS version.
+
+To assemble this version, the procedure is:
+
+ - The source is assembled at two different MEMLO values, $3000 and $2000.
+
+ - A C program (get-reloc.c) is included that reads the two binaries and builds
+   a table with all address that need to be patched in runtime, and includes the
+   table inside the binary.
+
+ - Code is included in the binary that at runtime, reads the MEMLO value and
+   patches all addresses in the relocation table, then copies the code to the
+   final memory address.
+
+To assemble this version, use the `tb_lowmem` define, or use the included
+`Makefile`.
+
+
 Fixed Bugs
 ----------
 

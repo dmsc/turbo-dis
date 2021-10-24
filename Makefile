@@ -1,7 +1,11 @@
 # Makefile: builds a bootable ATR image
 
 # Define to add minor fixes
-MADS_DEF=-d:tb_fixes -d:tb_lowmem=32
+MADS_DEF_LO=-d:tb_fixes -d:tb_lowmem=32
+MADS_DEF_HI=-d:tb_fixes -d:tb_lowmem=48
+
+# Flags for compilation of relocation program
+CFLAGS=-O2 -Wall
 
 # Output ATR filename:
 ATR=tbasic.atr
@@ -31,9 +35,20 @@ clean:
 	rm -f $(ATR)
 	rm -f $(FILES)
 
+# Compile relocation program
+bin/get-reloc: reloc/get-reloc.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+# Generate relocatable binary, from the two assemblies
+bin/tb.com: bin/tb.hi.com bin/tb.lo.com bin/get-reloc
+	bin/get-reloc $(filter %.com,$^) 0x1000 $@
+
 # Assemble using MADS to a ".com" file, includes fixes
-bin/tb.com: turbo-mads.asm turbo-loader.asm equates.asm
-	mads $(MADS_DEF) $< -o:$@ -l:$(@:.com=.lst)
+bin/tb.lo.com: turbo-mads.asm turbo-loader.asm equates.asm
+	mads $(MADS_DEF_LO) $< -o:$@ -l:$(@:.com=.lst)
+
+bin/tb.hi.com: turbo-mads.asm turbo-loader.asm equates.asm
+	mads $(MADS_DEF_HI) $< -o:$@ -l:$(@:.com=.lst)
 
 # Assemble using MADS to a ".com" file, original version
 bin/tb15.com: turbo-mads.asm turbo-loader.asm equates.asm
