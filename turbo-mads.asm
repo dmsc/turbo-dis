@@ -610,11 +610,9 @@ LLNGTH      = $9F
 TSLNUM      = $A0
 
 L00A0       = $00A0
-L00A2       = $00A2
-L00A3       = $00A3
-L00A4       = $00A4
-L00A5       = $00A5
-L00A6       = $00A6
+MVLNG       = $00A2
+ECSIZE      = $00A4     ; Expand/Contract Size
+DIRFLG      = $00A6     ; Direct mode Flag
 
 NXTSTD      = $00A7
 STINDEX     = $00A8
@@ -1410,14 +1408,14 @@ ERR_2_      jmp ERR_2
 
 ; Expand memory for a table
 EXPLOW      lda #$00
-EXPAND      sty L00A4
-            sta L00A5
+EXPAND      sty ECSIZE
+            sta ECSIZE+1
             clc
             lda TOPRSTK
-            adc L00A4
+            adc ECSIZE
             tay
             lda TOPRSTK+1
-            adc L00A5
+            adc ECSIZE+1
             cmp MEMTOP+1
             bcc MEM_OK
             bne ERR_2_
@@ -1427,27 +1425,27 @@ EXPAND      sty L00A4
 MEM_OK      sec
             lda TOPRSTK
             sbc $00,X
-            sta L00A2
+            sta MVLNG
             lda TOPRSTK+1
             sbc NGFLAG,X
-            sta L00A3
+            sta MVLNG+1
             clc
             lda $00,X
             sta L0097
             sta L0099
-            adc L00A4
+            adc ECSIZE
             sta L009B
             lda NGFLAG,X
             sta L0098
             sta L009A
-            adc L00A5
+            adc ECSIZE+1
             sta L009C
             ; Move memory pointers up
 @           lda $00,X
-            adc L00A4
+            adc ECSIZE
             sta $00,X
             lda NGFLAG,X
-            adc L00A5
+            adc ECSIZE+1
             sta NGFLAG,X
             inx
             inx
@@ -1458,7 +1456,7 @@ MEM_OK      sec
             sta APPMHI
 
 DO_MOVEDWN  inc PORTB
-            ldx L00A3
+            ldx MVLNG+1
             clc
             txa
             adc L009A
@@ -1468,7 +1466,7 @@ DO_MOVEDWN  inc PORTB
             adc L009C
             sta L009C
             inx
-            ldy L00A2
+            ldy MVLNG
             beq L2619
 L25F4       dey
             lda (L0099),Y
@@ -1499,30 +1497,30 @@ L2619       dex
 
 ; Move memory up, freeing heap
 CONTLOW     lda #$00
-CONTRACT    sty L00A4
-            sta L00A5
+CONTRACT    sty ECSIZE
+            sta ECSIZE+1
             sec
             lda TOPRSTK
             sbc $00,X
-            sta L00A2
+            sta MVLNG
             lda TOPRSTK+1
             sbc NGFLAG,X
-            sta L00A3
+            sta MVLNG+1
             sec
             lda $00,X
             sta L0099
-            sbc L00A4
+            sbc ECSIZE
             sta L009B
             lda NGFLAG,X
             sta L009A
-            sbc L00A5
+            sbc ECSIZE+1
             sta L009C
 L2644       sec
             lda $00,X
-            sbc L00A4
+            sbc ECSIZE
             sta $00,X
             lda NGFLAG,X
-            sbc L00A5
+            sbc ECSIZE+1
             sta NGFLAG,X
             inx
             inx
@@ -1534,7 +1532,7 @@ L2644       sec
 
 DO_MOVEUP   inc PORTB
             ldy #$00
-            ldx L00A3
+            ldx MVLNG+1
             beq L2683
 L2666       lda (L0099),Y
             sta (L009B),Y
@@ -1553,7 +1551,7 @@ L2666       lda (L0099),Y
             inc L009C
             dex
             bne L2666
-L2683       ldx L00A2
+L2683       ldx MVLNG
             beq L268F
 L2687       lda (L0099),Y
             sta (L009B),Y
@@ -2764,11 +2762,11 @@ ERR_3H      jmp ERR_3
 
 X_RENUM     jsr X_GS
             jsr GET3INT
-            sta L00A2
-            sty L00A3           ; $99/$9A: starting line,
+            sta MVLNG
+            sty MVLNG+1         ; $99/$9A: starting line,
                                 ; $9B/$9C: new number,
                                 ; $A2/$A3: increment
-            ora L00A3
+            ora MVLNG+1
             beq ERR_3H          ; Increment should be > 0
             tya
             ora L009A
@@ -2846,10 +2844,10 @@ L3470       sta STMCUR
             lda L009B
             sta (STMCUR),Y
             clc
-            adc L00A2
+            adc MVLNG
             sta L009B
             lda L009C
-            adc L00A3
+            adc MVLNG+1
             sta L009C
             ldy #$02
             lda (STMCUR),Y
@@ -2956,10 +2954,10 @@ L354A       dey
             bmi L3560           ; Not a program line
             clc                 ; Increment new line number
             lda FR1
-            adc L00A2
+            adc MVLNG
             sta FR1
             lda FR1+1
-            adc L00A3
+            adc MVLNG+1
             jmp L352B           ; Loop
 
 L355D       clc
@@ -3559,13 +3557,14 @@ LC1CF       sta AUDF1,X
 
 ERR_3A      jmp ERR_3
 
-X_DSOUND    sta L00A2
+        ; Use MVLNG as temporary
+X_DSOUND    sta MVLNG
             iny
             cpy NXTSTD
             bcs ENDSOUND
             jsr GETBYTE
             ldy #$00
-            bit L00A2
+            bit MVLNG
             bpl LC1EC
             asl
             ldy #$78
@@ -3581,7 +3580,7 @@ LC1EC       cmp #$04
             tax
             lda L0099
             sta AUDF1,X
-            bit L00A2
+            bit MVLNG
             bpl LC20F
             inx
             inx
@@ -4408,9 +4407,9 @@ RISASN      lda FR0
             lda FR0+1
             sta L009A
             lda FR0+2
-            sta L00A2
+            sta MVLNG
             ldy FR0+3
-            sty L00A3
+            sty MVLNG+1
             ldy OPSTKX
             beq XSA1
             lda #$80
@@ -4423,21 +4422,21 @@ RISASN      lda FR0
 XSA1        jsr X_POPSTR
             lda FR0+5
             ldy FR0+4
-XSA2A       cmp L00A3
+XSA2A       cmp MVLNG+1
             bcc XSA3
             bne XSA4
-            cpy L00A2
+            cpy MVLNG
             bcs XSA4
-XSA3        sta L00A3
-            sty L00A2
+XSA3        sta MVLNG+1
+            sty MVLNG
 XSA4        clc
             lda FR0
             sta L009B
-            adc L00A2
+            adc MVLNG
             tay
             lda FR0+1
             sta L009C
-            adc L00A3
+            adc MVLNG+1
             tax
             sec
             tya
@@ -4812,7 +4811,7 @@ LCADF       inc CIX
             inc ZTEMP1
             bne LCAD9
 LCAF1       lda #$40
-            sta L00A6
+            sta DIRFLG
             inc CIX
             jmp XINA
 
@@ -4849,7 +4848,7 @@ LCB33       jsr T_LDBUFA
             jsr GLINE
             jsr XITB
             ldy #$00
-            sty L00A6
+            sty DIRFLG  ; Set input mode
             sty CIX
 XINA        jsr GETTOK
             inc STINDEX
@@ -4893,7 +4892,7 @@ XIS1        inx
             beq XIS2
             cmp #','
             bne XIS1
-            bit L00A6
+            bit DIRFLG
             bvc XIS1
 XIS2        ldy ZTEMP1
             lda STINDEX
@@ -4904,7 +4903,7 @@ XIS2        ldy ZTEMP1
             pla
             sta STINDEX
             jsr RISASN
-XINDEX      bit L00A6
+XINDEX      bit DIRFLG
             bvc XIN
             inc DATAD
             ldx STINDEX
@@ -4948,13 +4947,13 @@ PRINT_STR   ldx #$00
 TB_SEGMENT_6
 
 X_MOVE      jsr GET3INT
-            sta L00A2
-            sty L00A3
+            sta MVLNG
+            sty MVLNG+1
             jmp DO_MOVEUP
 
 X_NMOVE     jsr GET3INT
-            sta L00A2
-            sty L00A3
+            sta MVLNG
+            sty MVLNG+1
             jmp DO_MOVEDWN
 
 X_FADD      jsr X_POPVAL2
@@ -5610,14 +5609,26 @@ X_PRINT     lda PTABW
             sta L00AF
             lda #$00
             sta L0094
+.if .def tb_fixes
+            sta MVLNG   ; Store last token
+.endif
 XPRINT0     ldy STINDEX
             lda (STMCUR),Y
+.if .not .def tb_fixes
             cmp #CCOM
             beq XPRINT_TAB
+.endif
             cmp #CCR
             beq XPRINT_EOL
             cmp #CEOS
             beq XPRINT_EOL
+.if .def tb_fixes
+            ; Not end-of-line, store token to check later if
+            ; we need to print a newline
+            sta MVLNG
+            cmp #CCOM
+            beq XPRINT_TAB
+.endif
             cmp #CSC
             beq XPRINT_NUL
             cmp #CPND
@@ -5669,17 +5680,24 @@ XPRINT_IO   jsr GETINTNXT
             dec STINDEX
             jmp XPRINT0
 
+.if .not .def tb_fixes
 GETINTNXT   inc STINDEX
             jmp GETINT
+.endif
 
 XPRINT_NUL  inc STINDEX
             jmp XPRINT0
 
-XPRINT_EOL  ldy STINDEX
+XPRINT_EOL
+.if .not .def tb_fixes
+            ldy STINDEX
             dey
             ; BUG: if last token was a number or string ending on $15 or $12,
             ;      no enter is printed.
             lda (STMCUR),Y
+.else
+            lda MVLNG   ; Get last token
+.endif
             cmp #CSC
             beq LDD92
             cmp #CCOM
@@ -5688,6 +5706,12 @@ XPRINT_EOL  ldy STINDEX
 LDD92       lda #$00
             sta L00B5
             rts
+
+            ; Moved here to fix branch range in fixed version
+.if .def tb_fixes
+GETINTNXT   inc STINDEX
+            jmp GETINT
+.endif
 
 X_LPRINT    lda #<DEV_P_
             sta INBUFF
@@ -6417,7 +6441,7 @@ LE698       ldy #$00
             sty CIX
             sty LLNGTH
             sty L0094
-            sty L00A6
+            sty DIRFLG
             sty L00B3
             sty COMCNT
             sty L00B1
@@ -6430,13 +6454,13 @@ LE698       ldy #$00
             jsr SETCODE
             lda FR0+1
             bpl LE6BF
-            sta L00A6   ; No line number
+            sta DIRFLG  ; No line number
 LE6BF       jsr UCASEBUF
             sty STINDEX
             lda (INBUFF),Y
             cmp #CR
             bne SYN_STMT
-            bit L00A6
+            bit DIRFLG
             bmi SYN_LINE
             jmp LE7E0
 ; Parse one statement
@@ -6485,8 +6509,8 @@ STFOUND     stx CIX
 LE72A       ora #$80
             sta (INBUFF),Y
             lda #$40
-            ora L00A6
-            sta L00A6
+            ora DIRFLG
+            sta DIRFLG
             ldy STINDEX
             sty CIX
             ldx #$03
@@ -6546,7 +6570,7 @@ LE7A1       dey
             sta (STMCUR),Y
             tya
             bne LE7A1
-            bit L00A6
+            bit DIRFLG
             bvc LE7D8
             lda L00B1
             asl
@@ -6563,7 +6587,7 @@ LE7A1       dey
             sbc L00AE
             ldx #VNTD
             jsr CONTRACT
-            bit L00A6
+            bit DIRFLG
             bpl P_SYNERROR
             jsr LDLINE
             jmp SYN_LINE
@@ -8398,11 +8422,11 @@ LF649       lda #TOK_ENDPROC ; Used to signal "ON * EXEC"
             jmp GTO_EXEC
 LF651       jmp X_GO_S
 
-REXPAND     sta L00A4
+REXPAND     sta ECSIZE
             clc
             lda TOPRSTK
             sta TEMPA
-            adc L00A4
+            adc ECSIZE
             tay
             lda TOPRSTK+1
             sta TEMPA+1
@@ -9087,6 +9111,9 @@ TS_MUL60    jsr TS_MUL10; *10
 .endif
 TS_RTS      rts
 
+
+FNTPTR = MVLNG  ; Use MVLNG as font pointer
+
 X_TEXT      jsr GET2INT
             sta L0099
             bne TS_RTS
@@ -9109,20 +9136,20 @@ TXT_NXTCH   lda FR0+2
 @           jsr ATA2SCR
             asl
             asl
-            sta L00A2
+            sta FNTPTR
             lda #$00
             rol
-            asl L00A2
+            asl FNTPTR
             rol
             adc CHBAS
-            sta L00A3
+            sta FNTPTR+1
             jsr PREPLOT
             bcs TS_RTS
             ; Plot one row of the character
 TXT_NROW    ldy #$08
             sty L00DD
             ldy L00DC
-            lda (L00A2),Y
+            lda (FNTPTR),Y
             eor L00DB
             sta L00DA
             ldx L00ED
@@ -9308,7 +9335,7 @@ PP_RTS      rts
             ; PAINT (flood fill)
             ; NOTE:
             ;   Fills complete horizontal lines, storing a list of pixel spans in
-            ;   a buffer indexed by (L00A2), initialized to the top of the return
+            ;   a buffer indexed by PNTSTK, initialized to the top of the return
             ;   stack, up to MEMTOP.
             ;   Each span is stored in 3 bytes, as expanded column:
             ;     0: left byte ($00 to $7F), bit 7 = direction (up/down)
@@ -9316,15 +9343,17 @@ PP_RTS      rts
             ;        but 0-2: right pos
             ;     2: right byte ($00 to $7F)
             ;
+PNTSTK = MVLNG  ; Use MVLNG as Paint Stack Pointer
+
 X_PAINT     jsr GET2INT
             sta L0099
             bne PP_RTS
             jsr PREPLOT
             bcs PP_RTS
             lda TOPRSTK
-            sta L00A2
+            sta PNTSTK
             lda TOPRSTK+1
-            sta L00A3
+            sta PNTSTK+1
             lda MEMTOP
             sbc #$06
             sta L00E7
@@ -9333,13 +9362,13 @@ X_PAINT     jsr GET2INT
             sta L00E8
             ; Paint next span
 PAINT_NXT   clc
-            lda L00A2
+            lda PNTSTK
             adc #$03
-            sta L00A2
+            sta PNTSTK
             bcc @+
-            inc L00A3
+            inc PNTSTK+1
 @           cmp L00E7
-            lda L00A3
+            lda PNTSTK+1
             sbc L00E8
             bcc @+
             jmp ERR_2   ; Not enough memory for the next span
@@ -9361,13 +9390,13 @@ PLOT_LNXT   jsr PLOT_DCOL
 PLOT_LEND   jsr PLOT_ICOL
             tya
             ldy #$00
-            sta (L00A2),Y
+            sta (PNTSTK),Y
             txa
             asl
             asl
             asl
             iny
-            sta (L00A2),Y
+            sta (PNTSTK),Y
             ; Plot all possible points to the right
             ldy FR1+3
             ldx L00ED
@@ -9382,11 +9411,11 @@ PLOT_RNXT   jsr PLOT_ICOL
 PLOT_REND   jsr PLOT_DCOL
             tya
             ldy #$02
-            sta (L00A2),Y
+            sta (PNTSTK),Y
             txa
             dey
-            ora (L00A2),Y
-            sta (L00A2),Y
+            ora (PNTSTK),Y
+            sta (PNTSTK),Y
             ; Test pixels in the next row (from current span)
             ldy L0099
             iny
@@ -9397,17 +9426,17 @@ PLOT_REND   jsr PLOT_DCOL
             jsr PAINT_GETL
 PAINT_SPDN  ; Check if we have more pixels in the span to test DOWN
             ldy #$01
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             and #$07
             cmp L00ED
             iny
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             sbc FR1+3
             bcc LFE82
             ldy #$00
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             ora #$80
-LFE7D       sta (L00A2),Y
+LFE7D       sta (PNTSTK),Y
             jmp PAINT_NXT
 LFE82       jsr PLOT_DROW
             ; Test pixels in prev row (from current span)
@@ -9420,24 +9449,24 @@ LFE85       ldy L0099
             jsr PAINT_GETL
 PAINT_SPUP  ; Check if we have more pixels in the span to test UP
             ldy #$01
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             and #$07
             cmp L00ED
             iny
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             sbc FR1+3
             bcc @+
             ldy #$00
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             and #$7F
             bpl LFE7D
 @           jsr PLOT_IROW
 LFEAC       ldy #$01
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             and #$07
             tax
             iny
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             tay
             // Ensure that we are outside span, we tested all
             jsr PLOT_ICOL
@@ -9446,18 +9475,18 @@ PAINT_ESPN  jsr PLOT_ICOL
             stx L00ED
             sty FR1+3
             sec
-            lda L00A2
+            lda PNTSTK
             sbc #$03
-            sta L00A2
+            sta PNTSTK
             bcs @+
-            dec L00A3
+            dec PNTSTK+1
 @           cmp TOPRSTK
             bne @+
-            lda L00A3
+            lda PNTSTK+1
             cmp TOPRSTK+1
             beq PAINT_RTS
 @           ldy #$00
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             bpl PAINT_SPUP
             bmi PAINT_SPDN
 
@@ -9481,11 +9510,11 @@ PLOT_DROW   dec L0099
 @           rts
             ; Read left pixel from span list
 PAINT_GETL  ldy #$00
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             and #$7F
             sta FR1+3
             iny
-            lda (L00A2),Y
+            lda (PNTSTK),Y
             lsr
             lsr
             lsr
