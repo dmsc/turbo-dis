@@ -806,12 +806,17 @@ END_LOAD_MSG
             org TBXL_LOW_ADDRESS
 
         .macro def_RESET_V
-RESET_V     lda #<RESET_V
+RESET_V
+.if .not .def tb_fixes
+            ; This code is not needed, as DOSINI must already point to this
+            ; vector and PORTB is already initialized by the OS.
+            lda #<RESET_V
             ldy #>RESET_V
             sta DOSINI
             sty DOSINI+1
             lda #$FF
             sta PORTB
+.endif
 JMPDOS      jsr $0000
             lda #$FE
             sta PORTB
@@ -928,6 +933,16 @@ DEV_P_      .byte 'P:', CR
             jsr PDUM
             dec PORTB
             rts
+
+; Calls PUTCHAR from IO channel X
+PDUM        lda IOCB0+ICPTH,X   ; 12
+            pha
+            lda IOCB0+ICPTL,X
+            pha
+            tya
+            ldy #$5C
+            rts
+
         .endm
 
 BLOADFLAG
@@ -1310,22 +1325,11 @@ IRQ_END     dec PORTB
             def_PDUM_ROM
         .endif
 
-; Calls PUTCHAR from IO channel X
-PDUM        lda IOCB0+ICPTH,X   ; 12
-            pha
-            lda IOCB0+ICPTL,X
-            pha
-            tya
-            ldy #$5C
-            rts
-
 GETKEY      inc PORTB   ; 10
 JSR_GETKEY  jsr $0000
             dec PORTB
             rts
 
-        .macro def_X_DOS
-.def :X_DOS
 X_DOS       jsr CLSALL
             inc PORTB
             lda JMPDOS+1
@@ -1333,19 +1337,10 @@ X_DOS       jsr CLSALL
             sta DOSINI
             sty DOSINI+1
             jmp (DOSVEC)
-        .endm
-
-        .if .not .def tb_lowmem
-            def_X_DOS
-        .endif
 
 X_BYE       jsr CLSALL
             inc PORTB
             jmp SELFSV
-
-        .if .def tb_lowmem
-            def_X_DOS
-        .endif
 
 X_DPEEK     jsr X_POPINT
             inc PORTB
@@ -3106,8 +3101,11 @@ L600A       stx JSR_GETKEY+1
             sta PORTB
             jsr LOAD_BLOCK
 
+.if .not .def tb_fixes
+            ; We don't need to set BOOT to 0 here, as we will set it again bellow
             lda #$00
             sta BOOT
+.endif
             lda DOSINI
             ldy DOSINI+1
             sta JMPDOS+1
@@ -3121,7 +3119,14 @@ L600A       stx JSR_GETKEY+1
             sta LOADFLG
             ldx #$01
             stx BASICF
+.if .not .def tb_fixes
             stx BOOT
+.else
+            ; FIX: properly handle BOOT flag, as it is a bit-field.
+            txa
+            ora BOOT
+            sta BOOT
+.endif
             dex
             stx COLDST
             jsr INIT_MEM
