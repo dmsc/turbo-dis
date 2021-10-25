@@ -17,6 +17,39 @@ FILES=\
     bin/readme \
     bin/startup.bat \
 
+# Source ASM files
+ASM_FILES=\
+    turbo-mads.asm\
+    asm/argstack.asm\
+    asm/bloadrun.asm\
+    asm/ciov.asm\
+    asm/contract.asm\
+    asm/dirspecs.asm\
+    asm/disrom.asm\
+    asm/equates.asm\
+    asm/expand.asm\
+    asm/fptmp.asm\
+    asm/getkey.asm\
+    asm/irq-nmi.asm\
+    asm/loader.asm\
+    asm/mathpack.asm\
+    asm/newfile.asm\
+    asm/nmi-end.asm\
+    asm/opetab.asm\
+    asm/opstack.asm\
+    asm/pdum.asm\
+    asm/relocate.asm\
+    asm/renum.asm\
+    asm/reset-v.asm\
+    asm/stmttab.asm\
+    asm/turbo-loader.asm\
+    asm/x-bye.asm\
+    asm/x-dos.asm\
+    asm/x-dpeek.asm\
+    asm/x-dpoke.asm\
+    asm/x-poke.asm\
+    asm/x-usr.asm\
+
 # BW-DOS files to copy inside the ATR
 DOSDIR=bin/dos/
 DOS=\
@@ -44,14 +77,14 @@ bin/tb.com: bin/tb.hi.com bin/tb.lo.com bin/get-reloc
 	bin/get-reloc $(filter %.com,$^) 0x1000 $@
 
 # Assemble using MADS to a ".com" file, includes fixes
-bin/tb.lo.com: turbo-mads.asm turbo-loader.asm equates.asm
+bin/tb.lo.com: $(ASM_FILES)
 	mads $(MADS_DEF_LO) $< -o:$@ -l:$(@:.com=.lst)
 
-bin/tb.hi.com: turbo-mads.asm turbo-loader.asm equates.asm
+bin/tb.hi.com: $(ASM_FILES)
 	mads $(MADS_DEF_HI) $< -o:$@ -l:$(@:.com=.lst)
 
 # Assemble using MADS to a ".com" file, original version
-bin/tb15.com: turbo-mads.asm turbo-loader.asm equates.asm
+bin/tb15.com: $(ASM_FILES)
 	mads $< -o:$@ -l:$(@:.com=.lst)
 
 # Checks that generated binary is same as original
