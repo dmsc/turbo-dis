@@ -27,7 +27,12 @@ ASM_FILES=\
     asm/dirspecs.asm\
     asm/disrom.asm\
     asm/equates.asm\
+    asm/errors.asm\
+    asm/errortab.asm\
+    asm/execnl.asm\
     asm/expand.asm\
+    asm/fastplot.asm\
+    asm/fix-rstk.asm\
     asm/fptmp.asm\
     asm/getkey.asm\
     asm/irq-nmi.asm\
@@ -43,12 +48,34 @@ ASM_FILES=\
     asm/reset-v.asm\
     asm/stmttab.asm\
     asm/turbo-loader.asm\
+    asm/unfix-rstk.asm\
     asm/x-bye.asm\
+    asm/x-cls.asm\
+    asm/x-color.asm\
+    asm/x-del.asm\
     asm/x-dos.asm\
     asm/x-dpeek.asm\
     asm/x-dpoke.asm\
+    asm/x-drawto.asm\
+    asm/x-dsound.asm\
+    asm/x-dump.asm\
+    asm/x-exec.asm\
+    asm/x-fcolor.asm\
+    asm/x-gosub.asm\
+    asm/x-graphics.asm\
+    asm/x-loop.asm\
+    asm/x-paint.asm\
+    asm/x-plot.asm\
     asm/x-poke.asm\
+    asm/x-position.asm\
+    asm/x-setcolor.asm\
+    asm/x-text.asm\
+    asm/x-time.asm\
+    asm/x-timeset.asm\
+    asm/x-timestr.asm\
+    asm/x-trace.asm\
     asm/x-usr.asm\
+
 
 # BW-DOS files to copy inside the ATR
 DOSDIR=bin/dos/
