@@ -88,7 +88,7 @@ L600A       stx JSR_GETKEY+1
             jsr EXPLOW
             ldy #ARUN_LEN-1
 L6084       lda ARUN_PROG,Y
-            sta (L0097),Y
+            sta (INDEX2),Y
             dey
             bpl L6084
             jsr GEN_LNHASH
@@ -103,7 +103,7 @@ L6084       lda ARUN_PROG,Y
 L609E       sta LB000,Y
             dey
             bpl L609E
-            jmp RUN_NOFILE
+            jmp X_RUN.RUN_NOFILE
 
 ARUN_PROG
             ; This is:
@@ -135,11 +135,11 @@ ROM2RAM     sta FR0+1
 L60E3       lda #$FF
             sta PORTB
 L60E8       lda (FR0),Y
-            sta VARSTK0,Y
+            sta OUTBUFF,Y
             iny
             bne L60E8
             dec PORTB
-L60F3       lda VARSTK0,Y
+L60F3       lda OUTBUFF,Y
             sta (FR0),Y
             iny
             bne L60F3

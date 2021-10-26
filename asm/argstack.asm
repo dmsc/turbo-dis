@@ -10,6 +10,10 @@
 ; and should be public-domain by now.
 ;
 
+; The memory for variable and argument stack is also used
+; for storing the parsed lines and copy ROM to RAM at init
+OUTBUFF = VARSTK0
+
 ; Variable and argument stacks
 VARSTK0     .ds $20
 VARSTK1     .ds $20

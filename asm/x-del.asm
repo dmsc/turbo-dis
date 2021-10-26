@@ -13,10 +13,10 @@
 X_DEL   .proc
             jsr X_GS
             jsr UNFIX_RSTK
-            jsr GETUINT
+            jsr GETPINT
             sta TSLNUM
             sty TSLNUM+1
-            jsr GETUINT
+            jsr GETPINT
             jsr SRCHLN_NC
 LC013       ldy #$01
             lda (STMCUR),Y

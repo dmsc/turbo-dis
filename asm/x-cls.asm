@@ -10,7 +10,7 @@
 ; and should be public-domain by now.
 ;
 
-X_CLS       jsr CLEAR_XYPOS
+X_CLS       jsr X_CIRCLE.CLEAR_XYPOS
             lda DSPFLG
             pha
             stx DSPFLG

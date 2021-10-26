@@ -10,6 +10,11 @@
 ; and should be public-domain by now.
 ;
 
+ERR_27      lda #$1B
+            .byte $2C   ; Skip 2 bytes
+ERR_25      lda #$19
+            jmp SERROR
+
 X_LOOP  .proc
             jsr X_POP
             bcs ERR_25

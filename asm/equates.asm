@@ -566,7 +566,6 @@ EVL_GOS     = $02
 ; Code equates
 ;
 LOMEM       = $80
-OUTBUFF     = $80
 VNTP        = $82
 VNTD        = $84
 VVTP        = $86
@@ -579,12 +578,10 @@ RUNSTK      = $8E
 TOPRSTK     = $90
 MEOLFLG     = $92
 
-L0094       = $0094
+COX         = $94       ; Current output index
+SCRADR      = $95       ; Search address
+INDEX2      = $97
 
-SCRADR      = $95
-
-L0097       = $0097
-L0098       = $0098
 L0099       = $0099
 L009A       = $009A
 L009B       = $009B
@@ -613,14 +610,19 @@ EXSVPR      = $00AC
 
 L00AD       = $00AD
 L00AE       = $00AE
-L00AF       = $00AF
+
+SCANT       = $AF
+STENUM      = $AF
 
 SVONTC      = $B0
 COMCNT      = $B0
 
 L00B1       = $00B1
-L00B2       = $00B2
+SVDISP      = $B2
 L00B3       = $00B3
+
+SVONTL      = $B2
+SVONTX      = $B3
 
 ENTDTD      = $00B4
 

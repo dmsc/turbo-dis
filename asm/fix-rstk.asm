@@ -19,7 +19,7 @@ UNFIX_RSTK .proc
             pha
             lda TOPRSTK+1
             pha
-            lda L00B2
+            lda SVDISP
             pha
             lda TSLNUM
             pha
@@ -27,13 +27,13 @@ UNFIX_RSTK .proc
             pha
 LC0DC       jsr X_POP
             bcs REST_VARS
-            ldy L00A0+1
-            bne LC0ED
+            ldy TSLNUM+1
+            bne @+
             lda #<FIX_RSTK.LFFFF ; Replace missing lines with "FFFF"
-            sta L00A0
+            sta TSLNUM
             lda #>FIX_RSTK.LFFFF
-            sta L00A0+1
-LC0ED       tay
+            sta TSLNUM+1
+@           tay
 .if .not .def tb_fixes
             ; BUG: this should be a "BEQ", as FOR loops store "0" in the runtime stack
             bmi LC0FE
@@ -41,15 +41,15 @@ LC0ED       tay
             beq LC0FE
 .endif
             ldy #$00
-            lda (L00A0),Y
+            lda (TSLNUM),Y
             iny
             sta (TOPRSTK),Y
-            lda (L00A0),Y
+            lda (TSLNUM),Y
             iny
             sta (TOPRSTK),Y
             bcc LC0DC
 LC0FE       ldy #$00
-            lda (L00A0),Y
+            lda (TSLNUM),Y
             ; This should be $0E and $0F
 .if .def tb_fixes
             ldy #$0E
@@ -58,7 +58,7 @@ LC0FE       ldy #$00
 .endif
             sta (TOPRSTK),Y
             ldy #$01
-            lda (L00A0),Y
+            lda (TSLNUM),Y
 .if .def tb_fixes
             ldy #$0F
 .else
@@ -71,7 +71,7 @@ REST_VARS   pla
             pla
             sta TSLNUM
             pla
-            sta L00B2
+            sta SVDISP
             pla
             sta TOPRSTK+1
             sta APPMHI+1
@@ -90,7 +90,7 @@ FIX_RSTK .proc
             pha
             lda TOPRSTK+1
             pha
-            lda L00B2
+            lda SVDISP
             pha
             lda TSLNUM
             pha
@@ -146,27 +146,30 @@ LC171       pla
 
 LFFFF       .byte $FF,$FF
 
+; Clear pointer, reuse TSLNUM
+CPTR = TSLNUM
+
 CLR_LABELS  lda VVTP
-            sta L00A0
+            sta CPTR
             lda VVTP+1
-            sta L00A0+1
-LC18A       lda L00A0
+            sta CPTR+1
+LC18A       lda CPTR
             cmp ENDVVT
-            lda L00A0+1
+            lda CPTR+1
             sbc ENDVVT+1
             bcs LC1AD
             ldy #$00
-            lda (L00A0),Y
+            lda (CPTR),Y
             and #$C0
             cmp #$C0
             bne LC1A0
-            sta (L00A0),Y
+            sta (CPTR),Y
 LC1A0       clc
-            lda L00A0
+            lda CPTR
             adc #$08
-            sta L00A0
+            sta CPTR
             bcc LC18A
-            inc L00A0+1
+            inc CPTR+1
             bcs LC18A
 LC1AD       rts
         .endp

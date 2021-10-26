@@ -50,7 +50,7 @@ ERR_PRINT   jsr PUTEOL
             cmp #$1F            ; Last TBXL error is 30 ($1E)
             bcc @+
             sbc #$62            ; I/O error, subtract the gap
-@           sta L00AF
+@           sta SCANT
             cmp #$4C            ; We know 76 errors in the table
             bcs PLNUM
             ldx #$00
@@ -70,7 +70,7 @@ PLNUM       ldy #$01            ; ERRM2 in BASIC sources
             dey
             lda (STMCUR),Y
             sta FR0
-            jsr PUT_INT
+            jsr PRINUM
 ERR_NOLN    jsr PUTEOL          ; ERRDONE in BASIC sources
             jsr X_TRACE.TRACE_OFF
             jmp SYN_START

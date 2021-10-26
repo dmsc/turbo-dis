@@ -38,12 +38,12 @@ MEM_OK      sec
             sta MVLNG+1
             clc
             lda $00,X
-            sta L0097
+            sta INDEX2
             sta L0099
             adc ECSIZE
             sta L009B
             lda NGFLAG,X
-            sta L0098
+            sta INDEX2+1
             sta L009A
             adc ECSIZE+1
             sta L009C

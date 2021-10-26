@@ -16,7 +16,7 @@ ERRLNUM     jsr RESCUR
 
 X_GOSUB     jsr X_GS    ; Save return address and skip to X_GOTO
 
-X_GOTO      jsr GETUINT
+X_GOTO      jsr GETPINT
 GTO_LINE    sta TSLNUM
             sty TSLNUM+1
             jsr SEARCHLINE
