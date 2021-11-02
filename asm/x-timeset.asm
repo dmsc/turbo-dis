@@ -31,8 +31,14 @@ X_TIMESET .proc
             cmp #60
             bcs TS_ERR18
             jsr TS_ADD
+PATCH_NTSC                      ;Patch this for NTSC:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             jsr TS_MUL5         ; Multiply by 5*10 = 50 (PAL)
             jsr TS_MUL10
+            ; Changed to:
+            ; jsr TS_MUL60
+            ; nop ; nop ; nop
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             lda FR1
             ldy FR1+1
             ldx FR1+2

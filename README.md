@@ -90,3 +90,14 @@ versions:
    70 ? "LINE 1:";1.23456715 : REM   BUG, same as above
    ```
 
+ - Detection of PAL/NTSC. The original TurboBasic XL assumes PAL ANTIC for the
+   `TIME$` function and the `TIME$=` statement, this means only 50 jiffies per
+   second, so the functions return an incorrect value in NTSC computers.
+
+   This version includes code at startup that counts the number of scan-lines
+   in a screen to detects the ANTIC type. If NTSC is detected the code is
+   changed to return the correct values assuming 60 jiffies per second.
+
+   Note that both values are not exact, the real values are 49.86 and 59.92
+   jiffies per second in PAL and NTSC respectively, but for the intended usage
+   the given values are close enough.

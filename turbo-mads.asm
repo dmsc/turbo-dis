@@ -132,8 +132,12 @@ TOP_LOWMEM
 ; Loader for the RAM under ROM parts and initialization:
         icl "asm/loader.asm"
 
-; Relocation support:
 .if .def tb_lowmem
+
+LOAD_END
+; Patch TIME between PAL and NTSC
+        icl "asm/time-ntsc.asm"
+; Relocation support:
         icl "asm/relocate.asm"
 .endif
 

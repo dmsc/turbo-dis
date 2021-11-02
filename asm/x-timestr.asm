@@ -67,7 +67,7 @@ TM_GETDIG   ora #'0'
             rts
         .endp
 
-FP_256      .fl 256
+FP_256      .fl 256     ; Used in X_TIME
 JF_DAY      .fl 4320000 ; A day in jiffies: 50Hz * 60 * 60 * 24
 
 ; vi:syntax=mads

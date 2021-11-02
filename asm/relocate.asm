@@ -15,7 +15,7 @@ RELOC_TABLE = $5000
 TBXL_RELOC_ADDR = $3000     ; Address of relocated data
 
             ; Perform relocation using relocation table loaded at fixed address
-LOAD_END .proc
+DO_RELOCATE .proc
             lda #$00
             sta NMIEN
             sei

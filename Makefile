@@ -103,6 +103,7 @@ ASM_FILES=\
     asm/synsrcont.asm\
     asm/syntable.asm\
     asm/syntax.asm\
+    asm/time-ntsc.asm\
     asm/turbo-loader.asm\
     asm/ucasebuf.asm\
     asm/unfix-rstk.asm\
