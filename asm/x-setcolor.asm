@@ -12,14 +12,14 @@
 
 X_SETCOLOR  jsr GET3INT
             and #$0F
-            asl L009B
-            asl L009B
-            asl L009B
-            asl L009B
-            ora L009B
-            ldx L009A
+            asl MVTA
+            asl MVTA
+            asl MVTA
+            asl MVTA
+            ora MVTA
+            ldx MVFA+1
             bne ERR_3A
-            ldx L0099
+            ldx MVFA
             cpx #$05
             bcs ERR_3A
             sta COLOR0,X

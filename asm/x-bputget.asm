@@ -17,9 +17,9 @@ X_BGET      lda #ICGETCHR
             jsr GETIOCHAN
             jsr GET2INT
             jsr LDDVX
-            lda L009B
+            lda MVTA
             sta IOCB0+ICBAL,X
-            lda L009C
+            lda MVTA+1
             sta IOCB0+ICBAH,X
             lda FR0
             sta IOCB0+ICBLL,X

@@ -34,26 +34,26 @@ MEM_OK      sec
             sbc $00,X
             sta MVLNG
             lda TOPRSTK+1
-            sbc NGFLAG,X
+            sbc $01,X
             sta MVLNG+1
             clc
             lda $00,X
             sta INDEX2
-            sta L0099
+            sta MVFA
             adc ECSIZE
-            sta L009B
-            lda NGFLAG,X
+            sta MVTA
+            lda $01,X
             sta INDEX2+1
-            sta L009A
+            sta MVFA+1
             adc ECSIZE+1
-            sta L009C
+            sta MVTA+1
             ; Move memory pointers up
 @           lda $00,X
             adc ECSIZE
             sta $00,X
-            lda NGFLAG,X
+            lda $01,X
             adc ECSIZE+1
-            sta NGFLAG,X
+            sta $01,X
             inx
             inx
             cpx #$92
@@ -67,35 +67,35 @@ MEM_OK      sec
             ldx MVLNG+1
             clc
             txa
-            adc L009A
-            sta L009A
+            adc MVFA+1
+            sta MVFA+1
             clc
             txa
-            adc L009C
-            sta L009C
+            adc MVTA+1
+            sta MVTA+1
             inx
             ldy MVLNG
             beq L2619
 L25F4       dey
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             tya
             bne L25F4
             beq L2619
-L25FE       dec L009A
-            dec L009C
+L25FE       dec MVFA+1
+            dec MVTA+1
 L2602       dey
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             dey
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             dey
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             dey
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             tya
             bne L2602
 L2619       dex

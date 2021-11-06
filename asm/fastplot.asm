@@ -30,9 +30,9 @@ RTS_SEC     sec
             ; Fill tables for fast PLOT
             ;
             ; INPUT:
-            ;   L0099 : plot row
-            ;   L009B : plot column (lo)
-            ;   L008C :             (hi)
+            ;   MVFA  : plot row
+            ;   MVTA  : plot column (lo)
+            ;   MVTA+1:             (hi)
             ;   COLOR : color to use (OS variable)
             ;   DINDEX: current graphics mode (OS variable)
             ;
@@ -50,12 +50,12 @@ PREPLOT     lda DINDEX
             tax
             lda #$00
             sta L00DF
-            lda L0099
+            lda MVFA
             asl
             rol L00DF
             asl
             rol L00DF
-            adc L0099
+            adc MVFA
             bcc @+
             inc L00DF
 @           asl
@@ -63,7 +63,7 @@ PREPLOT     lda DINDEX
             rol L00DF
             lda GR_ROWS,X
             sta FR1
-            cmp L0099
+            cmp MVFA
             beq RTS_SEC
             bcc RTS_SEC
             ldy GR_COLRS,X
@@ -89,9 +89,9 @@ PP_SKIP     clc
             lda L00DF
             adc SAVMSC+1
             sta L00DF
-            lda L009C
+            lda MVTA+1
             sta FR1+4
-            lda L009B
+            lda MVTA
             sta FR1+3
             ldy FR1+2
             sty L00ED

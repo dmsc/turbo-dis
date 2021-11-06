@@ -15,7 +15,7 @@ ERR_3C      jmp ERR_3
 X_POKE      jsr GET2INT
             bne ERR_3C
             inc PORTB
-C_POKE      sta (L009B),Y
+C_POKE      sta (MVTA),Y
             lda PORTB
             and #$FC
             ora #$02

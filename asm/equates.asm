@@ -582,10 +582,8 @@ COX         = $94       ; Current output index
 SCRADR      = $95       ; Search address
 INDEX2      = $97
 
-L0099       = $0099
-L009A       = $009A
-L009B       = $009B
-L009C       = $009C
+MVFA        = $99
+MVTA        = $9B
 
 CPC         = $9D
 WVVTPT      = $9D
@@ -617,9 +615,9 @@ STENUM      = $AF
 SVONTC      = $B0
 COMCNT      = $B0
 
-L00B1       = $00B1
+ADFLAG      = $B1
 SVDISP      = $B2
-L00B3       = $00B3
+ONLOOP      = $B3
 
 SVONTL      = $B2
 SVONTX      = $B3
@@ -657,7 +655,6 @@ L00DC       = $00DC
 L00DD       = $00DD
 L00DE       = $00DE
 L00DF       = $00DF
-L00E6       = $00E6
 L00E7       = $00E7
 L00E8       = $00E8
 L00E9       = $00E9

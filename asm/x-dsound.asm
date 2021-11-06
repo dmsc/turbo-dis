@@ -44,15 +44,15 @@ LC1EC       cmp #$04
             jsr GET3INT
             pla
             tax
-            lda L0099
+            lda MVFA
             sta AUDF1,X
             bit MVLNG
             bpl LC20F
             inx
             inx
-            lda L009A
+            lda MVFA+1
             sta AUDF1,X
-LC20F       lda L009B
+LC20F       lda MVTA
             asl
             asl
             asl

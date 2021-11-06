@@ -76,7 +76,7 @@ XISTR       ldy #$00
             sty OPSTKX
             sty COMCNT
             sty ARSLVL
-            sty L00B1
+            sty ADFLAG
             jsr X_PUSHVAL
             dec CIX
             lda CIX

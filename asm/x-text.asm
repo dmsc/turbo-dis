@@ -13,9 +13,11 @@
 X_TEXT  .proc
 
 FNTPTR = MVLNG  ; Use MVLNG as font pointer
+POSY = MVFA     ; Use MVFA as current Y coordinate
+POSX = MVTA     ; Use MVTA as X coordinate
 
             jsr GET2INT
-            sta L0099
+            sta POSY
             bne TS_RTS
             jsr EXEXPR
             ldx ARSLVL
@@ -62,24 +64,24 @@ TXT_NCOL    asl L00DA
 @           sta (L00DE),Y
             dec L00DD
             beq TXT_ECOL
-            jsr PLOT_ICOL
+            jsr X_PAINT.PLOT_ICOL
             cpy FR1+1
             bcc TXT_NCOL
             ; End of column, increment row
-TXT_ECOL    jsr PLOT_IROW.SKP
+TXT_ECOL    jsr X_PAINT.INC_ROW
             inc L00DC
             lda L00DC
             cmp #$08
             bcs @+
-            adc L0099
+            adc POSY
             cmp FR1
             bcc TXT_NROW
             ; Next character
-@           lda L009B
+@           lda POSX
             adc #$07
-            sta L009B
+            sta POSX
             bcc @+
-            inc L009C
+            inc POSX+1
 @           inc FR0
             bne @+
             inc FR0+1

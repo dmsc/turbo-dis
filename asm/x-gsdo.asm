@@ -17,7 +17,7 @@ X_REPEAT = X_GS
 X_GS    .proc
             lsr
             ldy STINDEX
-            sty L00B3
+            sty ONLOOP
 GS1         pha
             lda #$04    ; Expand by 4 bytes
             jsr REXPAND
@@ -30,7 +30,7 @@ GS1         pha
             lda STMCUR+1
             iny
             sta (TEMPA),Y
-            ldx L00B3
+            ldx ONLOOP
             dex
             txa
             iny

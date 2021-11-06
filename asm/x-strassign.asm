@@ -14,9 +14,9 @@ X_STRASIGN  jsr X_POPSTR
 
 RISASN  .proc
             lda FR0
-            sta L0099
+            sta MVFA
             lda FR0+1
-            sta L009A
+            sta MVFA+1
             lda FR0+2
             sta MVLNG
             ldy FR0+3
@@ -24,11 +24,11 @@ RISASN  .proc
             ldy OPSTKX
             beq XSA1
             lda #$80
-            sta L00B1
+            sta ADFLAG
             jsr EXOPOP
             lda FR0+3
             ldy FR0+2
-            rol L00B1
+            rol ADFLAG
             bcs XSA2A
 XSA1        jsr X_POPSTR
             lda FR0+5
@@ -42,11 +42,11 @@ XSA3        sta MVLNG+1
             sty MVLNG
 XSA4        clc
             lda FR0
-            sta L009B
+            sta MVTA
             adc MVLNG
             tay
             lda FR0+1
-            sta L009C
+            sta MVTA+1
             adc MVLNG+1
             tax
             sec
@@ -67,10 +67,10 @@ XSA4        clc
             sbc FR0+1
             tax
             lda #$02
-            and L00B1
+            and ADFLAG
             beq XSA5
             lda #$00
-            sta L00B1
+            sta ADFLAG
             cpx FR0+3
             bcc XSA6
             bne XSA5

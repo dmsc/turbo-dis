@@ -28,7 +28,7 @@ EXEXPR  .proc
             sty OPSTKX
             sty COMCNT
             sty ARSLVL
-            sty L00B1
+            sty ADFLAG
 EXNXT       jsr GETTOK
             bcs EXOPER
             jsr X_PUSHVAL

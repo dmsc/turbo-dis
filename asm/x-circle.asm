@@ -15,18 +15,18 @@ ASQUARE .proc
             sta FR0+2
             sta FR0+3
             ldy #$08
-LDE66       asl L00E6,X
+MLOOP       asl FR1+6,X
             rol FR1+5,X
             rol FR0+2
-            bcc LDE79
+            bcc @+
             clc
-            lda L00E6,X
+            lda FR1+6,X
             adc FR0+3
-            sta L00E6,X
-            bcc LDE79
+            sta FR1+6,X
+            bcc @+
             inc FR1+5,X
-LDE79       dey
-            bne LDE66
+@           dey
+            bne MLOOP
             rts
         .endp
 
@@ -39,20 +39,32 @@ X_CIRCLE .proc
             ldy STINDEX
             iny
             cpy NXTSTD
-            bcs LDE92
-            jsr GETINT
+            bcs @+
+            jsr GETINT  ; Read ellipse Y radius
             bne ERR_3G
-LDE92       pla
+@           pla
             bne LDE97
             lda #$01    ; Don't allow radius_X = 0
 LDE97       sta FR0+1
             ; Here we have the following variables:
-            ;   $99/$9A         : Center_X
-            ;   $9B/$9C         : Center_Y
+CX = MVFA
+CY = MVTA
+RY = FR0
+RX = FR0+1
+            ;   $99 (MVFA)      : Center_X (2 bytes)
+            ;   $9B (MVTA)      : Center_Y (2 bytes)
             ;   $D4 (FR0)       : Radius_Y
             ;   $D5 (FR0+1)     : Radius_X
             ;   $D6 (FR0+2)     : temporary variable 1
             ;   $D7 (FR0+3)     : temporary variable 2
+TEMP = $D6
+PX  = $E0
+PY  = $E1
+ERR = $E2
+RX2 = $E5
+RY2 = $E7
+ADX = $E9
+ADY = $DA
             ;   $DC/$DB/$DA     : Add_Y = Radius_Y^2 * X, starts = Radius_Y^2 * Radius_X)
             ;   $E0 (FR1)       : X, starts = Radius_X
             ;   $E1 (FR1+1)     : Y, starts = 0
@@ -64,40 +76,40 @@ LDE97       sta FR0+1
             ; Clear all variables to 0
             ldx #$16
             lda #$00
-LDE9D       sta FR0+2,X
+LDE9D       sta TEMP,X
             dex
             bpl LDE9D
             ; Gets (radius_X)^2 -> $E6/$E5 and radius_X -> $E0 (X)
-            lda FR0+1
+            lda RX
             sta FR1
             inx
             jsr ASQUARE
             ; Gets (radius_Y)^2 -> $E8/$E7
-            lda FR0
+            lda RY
             ldx #$02
             jsr ASQUARE
             ; Multiplies (radius_Y^2) * (radius_X) -> $DC/$DB/$DA
-            lda FR0+1
-            sta FR0+2
+            lda RX
+            sta TEMP
             ldy #$08
-LDEB7       asl L00DC
-            rol L00DB
-            rol L00DA
-            asl FR0+2
-            bcc LDED2
+MUL1        asl ADY+2
+            rol ADY+1
+            rol ADY
+            asl TEMP
+            bcc @+
             clc
-            lda L00DC
-            adc L00E8
-            sta L00DC
-            lda L00DB
-            adc L00E7
-            sta L00DB
-            bcc LDED2
-            inc L00DA
-LDED2       dey
-            bne LDEB7
+            lda ADY+2
+            adc RY2+1
+            sta ADY+2
+            lda ADY+1
+            adc RY2
+            sta ADY+1
+            bcc @+
+            inc ADY
+@           dey
+            bne MUL1
             ; Plots 4 points in the circle
-LDED5       jsr ADD_XPOS
+PLOT        jsr ADD_XPOS
             jsr ADD_Y_PLOT      ; center + (+x,+y)
             jsr ADD_XPOS
             jsr SUB_Y_PLOT      ; center + (+x,-y)
@@ -106,55 +118,55 @@ LDED5       jsr ADD_XPOS
             jsr SUB_XPOS
             jsr SUB_Y_PLOT      ; center + (-x,-y)
             ; Test error
-            bit FR1+2
+            bit ERR
             bmi LDF12
             ; Error Positive, increment Y
-            inc FR1+1           ; Y = Y + 1
+            inc PY              ; Y = Y + 1
             clc                 ; Add_X = Add_X + Radius_X ^ 2
-            lda L00EB
-            adc L00E6
-            sta L00EB
-            lda L00EA
-            adc FR1+5
-            sta L00EA
+            lda ADX+2
+            adc RX2+1
+            sta ADX+2
+            lda ADX+1
+            adc RX2
+            sta ADX+1
             bcc LDF04
-            inc L00E9
+            inc ADX
 LDF04       sec                 ; Error = Error - Add_X
             ldx #$02
-LDF07       lda FR1+2,X
-            sbc L00E9,X
-            sta FR1+2,X
+LDF07       lda ERR,X
+            sbc ADX,X
+            sta ERR,X
             dex
             bpl LDF07
-            bmi LDED5           ; Loop again
+            bmi PLOT            ; Loop again
 
             ; Error Negative, decrement X
 LDF12       lda FR1
             beq CLEAR_XYPOS
             dec FR1             ; X = X - 1
             sec                 ; Add_Y = Add_Y - Radius_Y ^2
-            lda L00DC
-            sbc L00E8
-            sta L00DC
-            lda L00DB
-            sbc L00E7
-            sta L00DB
+            lda ADY+2
+            sbc RY2+1
+            sta ADY+2
+            lda ADY+1
+            sbc RY2
+            sta ADY+1
             bcs LDF29
-            dec L00DA
+            dec ADY
 LDF29       clc                 ; Error = Error + Add_Y
             ldx #$02
-LDF2C       lda FR1+2,X
-            adc L00DA,X
-            sta FR1+2,X
+LDF2C       lda ERR,X
+            adc ADY,X
+            sta ERR,X
             dex
             bpl LDF2C
-            bmi LDED5           ; Loop Again
+            bmi PLOT            ; Loop Again
 
 ADD_XPOS    clc
-            lda L0099
-            adc FR1
+            lda CX
+            adc PX
             sta COLCRS
-            lda L009A
+            lda CX+1
             adc #$00
             sta COLCRS+1
             rts
@@ -166,26 +178,26 @@ CLEAR_XYPOS ldx #$00
             rts
 
 SUB_XPOS    sec
-            lda L0099
-            sbc FR1
+            lda CX
+            sbc PX
             sta COLCRS
-            lda L009A
+            lda CX+1
             sbc #$00
             sta COLCRS+1
             rts
 ADD_Y_PLOT  clc
-            lda L009B
-            adc FR1+1
+            lda CY
+            adc PY
             sta ROWCRS
-            lda L009C
+            lda CY+1
             adc #$00
             beq CIRC_PLOT
 LDF69       rts
 SUB_Y_PLOT  sec
-            lda L009B
-            sbc FR1+1
+            lda CY
+            sbc PY
             sta ROWCRS
-            lda L009C
+            lda CY+1
             sbc #$00
             bne LDF69
 CIRC_PLOT   ldy COLOR

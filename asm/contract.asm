@@ -20,24 +20,24 @@ CONTRACT .proc
             sbc $00,X
             sta MVLNG
             lda TOPRSTK+1
-            sbc NGFLAG,X
+            sbc $01,X
             sta MVLNG+1
             sec
             lda $00,X
-            sta L0099
+            sta MVFA
             sbc ECSIZE
-            sta L009B
-            lda NGFLAG,X
-            sta L009A
+            sta MVTA
+            lda $01,X
+            sta MVFA+1
             sbc ECSIZE+1
-            sta L009C
+            sta MVTA+1
 L2644       sec
             lda $00,X
             sbc ECSIZE
             sta $00,X
-            lda NGFLAG,X
+            lda $01,X
             sbc ECSIZE+1
-            sta NGFLAG,X
+            sta $01,X
             inx
             inx
             cpx #$92
@@ -51,27 +51,27 @@ L2644       sec
             ldy #$00
             ldx MVLNG+1
             beq L2683
-L2666       lda (L0099),Y
-            sta (L009B),Y
+L2666       lda (MVFA),Y
+            sta (MVTA),Y
             iny
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             iny
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             iny
-            lda (L0099),Y
-            sta (L009B),Y
+            lda (MVFA),Y
+            sta (MVTA),Y
             iny
             bne L2666
-            inc L009A
-            inc L009C
+            inc MVFA+1
+            inc MVTA+1
             dex
             bne L2666
 L2683       ldx MVLNG
             beq L268F
-L2687       lda (L0099),Y
-            sta (L009B),Y
+L2687       lda (MVFA),Y
+            sta (MVTA),Y
             iny
             dex
             bne L2687

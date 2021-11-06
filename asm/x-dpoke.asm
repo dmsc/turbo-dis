@@ -13,7 +13,7 @@
 X_DPOKE     jsr GET2INT
             inc PORTB
             ldy #$00
-            sta (L009B),Y
+            sta (MVTA),Y
             lda FR0+1
             iny
             bne C_POKE

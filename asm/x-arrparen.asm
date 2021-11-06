@@ -19,11 +19,11 @@ X_RPAREN    ldy OPSTKX
             jmp EXOPOP
 
 X_DIMLPAREN lda #$40
-            sta L00B1
+            sta ADFLAG
 
 X_ARRLPAREN .proc
 
-            bit L00B1
+            bit ADFLAG
             bpl ALP1
             lda ARSLVL
             sta ATEMP
@@ -41,10 +41,10 @@ ALP2        sty INDEX2+1
             sta ZTEMP1
             sty ZTEMP1+1
             jsr X_POPVAL
-            bit L00B1
+            bit ADFLAG
             bvc ALP3
             lda #$00
-            sta L00B1
+            sta ADFLAG
             rts
 
 ERR_9_      jmp ERR_9
@@ -119,13 +119,13 @@ AMUL6       clc                 ; Multiply index by 6
             tya
             adc STARP+1
             sta ZTEMP1+1
-            bit L00B1
+            bit ADFLAG
             bpl ALP8
             ldx ATEMP
             stx ARSLVL
             dec ARSLVL
             ldy #$00
-            sty L00B1
+            sty ADFLAG
             lda ARGSTK0,X
             sta (ZTEMP1),Y
             iny

@@ -12,7 +12,7 @@
 
         ; First part of FOR statement
 X_FOR   .proc
-            sty L00B3
+            sty ONLOOP
             lda (STMCUR),Y
             bne LF3C8
             iny

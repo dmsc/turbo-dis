@@ -50,7 +50,7 @@ SYN_LINE    lda LOADFLG
             sty DIRFLG
             sty SVONTX
             sty COMCNT
-            sty L00B1
+            sty ADFLAG
             lda VNTD
             sta L00AD
             lda VNTD+1
@@ -181,7 +181,7 @@ SYN7        dey
             bne SYN7
             bit DIRFLG          ; Check syntax error
             bvc SYN8
-            lda L00B1           ; Yes, remove created variables
+            lda ADFLAG          ; Yes, remove created variables
             asl
             asl
             asl

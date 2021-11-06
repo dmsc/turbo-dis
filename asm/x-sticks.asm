@@ -10,16 +10,16 @@
 ; and should be public-domain by now.
 ;
 
-X_PADDLE    lda #$00
+X_PADDLE    lda #PADDL0-PADDL0
             beq X_GRF
 
-X_STICK     lda #$08
+X_STICK     lda #STICK0-PADDL0
             bne X_GRF
 
-X_PTRIG     lda #$0C
+X_PTRIG     lda #PTRIG0-PADDL0
             bne X_GRF
 
-X_STRIG     lda #$14
+X_STRIG     lda #STRIG0-PADDL0
 X_GRF       sta L00EC
             jsr X_POPINT
             bne ERR_3B

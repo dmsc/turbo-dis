@@ -39,7 +39,7 @@ X_FPASIGN .proc
             sta (WVVTPT),Y
             rts
 LC682       lda #$80
-            sta L00B1
+            sta ADFLAG
             rts
         .endp
 

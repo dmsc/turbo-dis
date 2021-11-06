@@ -93,7 +93,7 @@ TVS1        sta (INDEX2),Y
             ldy #$08    ; Expand VVT by 8 bytes
             ldx #STMTAB
             jsr EXPLOW
-            inc L00B1
+            inc ADFLAG
             jsr T_ZFR0
             ldy #$07
 TVS2        lda VTYPE,Y

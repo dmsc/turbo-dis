@@ -17,31 +17,32 @@ SETV_LBL .proc
             lda #EVLABEL + EVL_GOS
             tax
             iny
-            lda (L0099),Y
+            lda (MVFA),Y
             bne @+
             iny
-            lda (L0099),Y
+            lda (MVFA),Y
 @           eor #$80
             jsr VAR_PTR
             txa
             cmp (WVVTPT),Y
             beq GEN_LNHASH.HSH_CONT
             sta (WVVTPT),Y
-            lda L0099
+            lda MVFA
             ldy #$02
             sta (WVVTPT),Y
             iny
-            lda L009A
+            lda MVFA+1
             sta (WVVTPT),Y
             jmp GEN_LNHASH.HSH_CONT
         .endp
 
 ; Buils line number hash table and fills PROC/#LABEL addresses.
 GEN_LNHASH .proc
-            lda L0099
+            lda MVFA    ; Store MVFA in stack to reuse here.
+            pha         ; NOTE: this should not be necessary, as it is not used
+            lda MVFA+1  ;       from any context that calls this.
             pha
-            lda L009A
-            pha
+
             ; Start filling with zeroes
             lda #$00
             tay
@@ -51,59 +52,59 @@ HSH_CLR     sta (LOMEM),Y
             bne HSH_CLR
             ; Iterate through all program lines
             lda STMTAB+1
-            sta L009A
+            sta MVFA+1
             lda STMTAB
-HSH_NXT     sta L0099
+HSH_NXT     sta MVFA
             ldy #$04
-            lda (L0099),Y
+            lda (MVFA),Y
             cmp #TOK_PROC
             beq SETV_PROC
             cmp #TOK_PND
             beq SETV_LBL
 HSH_CONT    ldy #$01
-            lda (L0099),Y
+            lda (MVFA),Y
             asl
             bcs HSH_EPROC
             tay
             lda (LOMEM),Y
             bne HSH_DONE  ; Skip already hashed
             ; Store address of line into hash
-            lda L009A
+            lda MVFA+1
             sta (LOMEM),Y
             iny
-            lda L0099
+            lda MVFA
             sta (LOMEM),Y
 HSH_DONE    clc
             ldy #$02
-            lda (L0099),Y
-            adc L0099
+            lda (MVFA),Y
+            adc MVFA
             bcc HSH_NXT
-            inc L009A
+            inc MVFA+1
             bcs HSH_NXT
             ; Now, we fill remaining hashes with available lines
 HSH_EPROC   lda STMTAB
-            sta L0099
+            sta MVFA
             lda STMTAB+1
-            sta L009A
+            sta MVFA+1
             ldy #$00
 HSH_FILL    lda (LOMEM),Y
             bne LCA24
-            lda L009A
+            lda MVFA+1
             sta (LOMEM),Y
             iny
-            lda L0099
+            lda MVFA
             sta (LOMEM),Y
             jmp LCA2B
-LCA24       sta L009A
+LCA24       sta MVFA+1
             iny
             lda (LOMEM),Y
-            sta L0099
+            sta MVFA
 LCA2B       iny
             bne HSH_FILL
             pla
-            sta L009A
+            sta MVFA+1
             pla
-            sta L0099
+            sta MVFA
             rts
         .endp
 

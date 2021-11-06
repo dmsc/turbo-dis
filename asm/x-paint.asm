@@ -25,9 +25,12 @@
 X_PAINT .proc
 
 PNTSTK = MVLNG  ; Use MVLNG as Paint Stack Pointer
+STKEND = $E7    ; Use $E7/$E8 as Stack End Pointer
+POSY = MVFA     ; Use MVFA as current Y coordinate
+POSX = MVTA     ; Use MVTA as X coordinate
 
             jsr GET2INT
-            sta L0099
+            sta POSY
             bne PP_RTS
             jsr PREPLOT
             bcs PP_RTS
@@ -37,10 +40,10 @@ PNTSTK = MVLNG  ; Use MVLNG as Paint Stack Pointer
             sta PNTSTK+1
             lda MEMTOP
             sbc #$06
-            sta L00E7
+            sta STKEND
             lda MEMTOP+1
             sbc #$00
-            sta L00E8
+            sta STKEND+1
             ; Paint next span
 PAINT_NXT   clc
             lda PNTSTK
@@ -48,9 +51,9 @@ PAINT_NXT   clc
             sta PNTSTK
             bcc @+
             inc PNTSTK+1
-@           cmp L00E7
+@           cmp STKEND
             lda PNTSTK+1
-            sbc L00E8
+            sbc STKEND+1
             bcc @+
             jmp ERR_2   ; Not enough memory for the next span
 @           ldx L00ED
@@ -98,7 +101,7 @@ PLOT_REND   jsr PLOT_DCOL
             ora (PNTSTK),Y
             sta (PNTSTK),Y
             ; Test pixels in the next row (from current span)
-            ldy L0099
+            ldy POSY
             iny
             cpy FR1
             bcs LFE85
@@ -121,7 +124,7 @@ LFE7D       sta (PNTSTK),Y
             jmp PAINT_NXT
 LFE82       jsr PLOT_DROW
             ; Test pixels in prev row (from current span)
-LFE85       ldy L0099
+LFE85       ldy POSY
             dey
             cpy FR1
             bcs LFEAC
@@ -165,28 +168,24 @@ PAINT_ESPN  jsr PLOT_ICOL
             bne @+
             lda PNTSTK+1
             cmp TOPRSTK+1
-            beq PLOT_IROW.RTS_
+            beq RTS_
 @           ldy #$00
             lda (PNTSTK),Y
             bpl PAINT_SPUP
             bmi PAINT_SPDN
-        .endp
 
             ; Increment plot row
-PLOT_IROW .proc
-            inc L0099
-SKP         clc         ; Used from TEXT statement
+PLOT_IROW   inc POSY
+INC_ROW     clc         ; Used from TEXT statement
             lda L00DE
             adc FR1+1
             sta L00DE
             bcc RTS_
             inc L00DF
 RTS_        rts         ; Used as general RTS
-        .endp
 
             ; Decrement plot row
-PLOT_DROW .proc
-            dec L0099
+PLOT_DROW   dec POSY
             sec
             lda L00DE
             sbc FR1+1
@@ -194,11 +193,9 @@ PLOT_DROW .proc
             bcs @+
             dec L00DF
 @           rts
-        .endp
 
             ; Read left pixel from span list
-PAINT_GETL .proc
-            ldy #$00
+PAINT_GETL  ldy #$00
             lda (X_PAINT.PNTSTK),Y
             and #$7F
             sta FR1+3
@@ -209,39 +206,31 @@ PAINT_GETL .proc
             lsr
             sta L00ED
             rts
-        .endp
 
             ; Increment plot column
-PLOT_ICOL .proc
-            cpx FR1+4
+PLOT_ICOL   cpx FR1+4
             inx
             bcc @+
             ldx #$00
             iny
 @           rts
-        .endp
 
             ; Decrement plot column
-PLOT_DCOL .proc
-            dex
+PLOT_DCOL   dex
             bpl @+
             ldx FR1+4
             dey
 @           rts
-        .endp
 
             ; Plots a pixel at current coordinates
-PLOT_SET .proc
-            lda (L00DE),Y
+PLOT_SET    lda (L00DE),Y
             and PLOT_MASK,X
             ora PLOT_PIX,X
             sta (L00DE),Y
             rts
-        .endp
 
             ; Get pixel value at current coordinates
-PLOT_GET .proc
-            lda (L00DE),Y
+PLOT_GET    lda (L00DE),Y
             ora PLOT_MASK,X
             eor PLOT_MASK,X
             beq @+

@@ -11,7 +11,7 @@
 ;
 
 X_ON    .proc
-            sty L00B3
+            sty ONLOOP
             jsr GETFP
             jsr T_FPI
             bcs RTS_2A

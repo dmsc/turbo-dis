@@ -12,21 +12,26 @@
 
 ERR_3H      jmp ERR_3
 
-X_RENUM     jsr X_GS
+X_RENUM .proc
+
+OLDNUM = MVFA
+NEWNUM = MVTA
+
+            jsr X_GS
             jsr GET3INT
             sta MVLNG
-            sty MVLNG+1         ; $99/$9A: starting line,
-                                ; $9B/$9C: new number,
-                                ; $A2/$A3: increment
+            sty MVLNG+1         ; MVFA:  original line number,
+                                ; MVTA:  new line number,
+                                ; MVLNG: increment
             ora MVLNG+1
             beq ERR_3H          ; Increment should be > 0
             tya
-            ora L009A
-            ora L009C
+            ora OLDNUM+1
+            ora NEWNUM+1
             bmi ERR_3H          ; All parameters should be < 32768
-            lda L0099
+            lda OLDNUM
             sta TSLNUM
-            lda L009A
+            lda OLDNUM+1
             sta TSLNUM+1
             jsr SEARCHLINE      ; Search starting line
             lda STMCUR
@@ -42,27 +47,27 @@ X_RENUM     jsr X_GS
             lda STMTAB+1        ; Now, go through the whole program
             sta STMCUR+1
             lda STMTAB
-L341E       sta STMCUR          ; First pass, change all line references
+P1_NLINE    sta STMCUR          ; First pass, change all line references
             ldy #$01
             lda (STMCUR),Y
-            bmi L346A           ; Reached last line
+            bmi PASS_2          ; Reached last line
             iny
             lda (STMCUR),Y
             sta LLNGTH
             iny
-L342C       lda (STMCUR),Y
+P1_NSTMT    lda (STMCUR),Y
             sta NXTSTD
             iny
             sty STINDEX
             lda (STMCUR),Y      ; Search statements that needs change
             cmp #TOK_GOTO
-            beq L3443
+            beq @+
             cmp #TOK_GO_TO
-            beq L3443
+            beq @+
             cmp #TOK_GOSUB
-            beq L3443
+            beq @+
             cmp #TOK_TRAP
-L3443       beq REN_CHG1
+@           beq REN_CHG1
             cmp #TOK_ON
             beq REN_CHGON
             cmp #TOK_RESTORE
@@ -75,38 +80,38 @@ L3443       beq REN_CHG1
             beq REN_CHGLST
 REN_NXTST   ldy NXTSTD
             cpy LLNGTH
-            bcc L342C           ; Next statement in line
+            bcc P1_NSTMT        ; Next statement in line
             clc
             lda STMCUR
             adc LLNGTH
-            bcc L341E
+            bcc P1_NLINE
             inc STMCUR+1
-            bcs L341E
+            bcs P1_NLINE
 
-L346A       lda FR1+3           ; Complete, now a second pass to change actual line numbers
+PASS_2      lda FR1+3           ; Complete, now a second pass to change actual line numbers
             sta STMCUR+1
             lda FR1+2
-L3470       sta STMCUR
+P2_NLINE    sta STMCUR
             ldy #$01
             lda (STMCUR),Y
             bmi REN_END
-            lda L009C
+            lda NEWNUM+1
             sta (STMCUR),Y
             dey
-            lda L009B
+            lda NEWNUM
             sta (STMCUR),Y
             clc
             adc MVLNG
-            sta L009B
-            lda L009C
+            sta NEWNUM
+            lda NEWNUM+1
             adc MVLNG+1
-            sta L009C
+            sta NEWNUM+1
             ldy #$02
             lda (STMCUR),Y
             adc STMCUR
-            bcc L3470
+            bcc P2_NLINE
             inc STMCUR+1
-            bcs L3470
+            bcs P2_NLINE
 
 REN_END     jsr GEN_LNHASH
             jmp POP_RETURN
@@ -124,12 +129,12 @@ REN_CHG1    jsr REN_CHGNXT
 
 REN_CHGON   jsr SKIPTOK
             cpx #CGTO
-            beq L34C2
+            beq REN_CHGOTO
             cpx #CGS
             bne REN_NXTST
             .byte $2C   ; Skip 2 bytes
 REN_CHGLST  inc STINDEX
-L34C2       lda STINDEX
+REN_CHGOTO  lda STINDEX
             cmp NXTSTD
             bcs REN_NXTST
             pha
@@ -137,7 +142,7 @@ L34C2       lda STINDEX
             pla
             sta STINDEX
             jsr SKPCTOK
-            jmp L34C2
+            jmp REN_CHGOTO
 
 REN_CHGNXT  inc STINDEX
 REN_CHGNUM  ldy STINDEX
@@ -153,71 +158,72 @@ REN_CHGNUM  ldy STINDEX
             bcs REN_CXIT
             jsr REN_NEWLN
             php
-            bcs L34F9
+            bcs @+
             sta FR0             ; Ok, get new number
             sty FR0+1
-L34F9       jsr T_IFP
+@           jsr T_IFP
             asl FR0
             plp
             ror FR0
             ldy STINDEX
             ldx #$05
-L3505       lda FR0,X
+@           lda FR0,X
             dey
             sta (STMCUR),Y
             dex
-            bpl L3505
+            bpl @-
 REN_CXIT    rts
 
 REN_NEWLN   ; Calculate new line number of old line number at FR0
             lda FR0
-            cmp L0099
+            cmp OLDNUM
             lda FR0+1
-            sbc L009A
-            bcs L351D
+            sbc OLDNUM+1
+            bcs @+
             lda FR0
             ldy FR0+1
             rts
-L351D       lda FR1+2
+@           lda FR1+2
             sta L00DA
             lda FR1+3
             sta L00DB
-            lda L009B           ; Store new line number in FR1
+            lda NEWNUM          ; Store new line number in FR1
             sta FR1
-            lda L009C
-L352B       sta FR1+1
+            lda NEWNUM+1
+CL_LOOP     sta FR1+1
             ldy #$01
             lda (L00DA),Y       ; Read current line number
-            bmi L3560           ; Not a program line
+            bmi CL_NRET         ; Not a program line
             cmp FR0+1
-            bne L353C
+            bne @+
             dey
             lda (L00DA),Y
             cmp FR0
-L353C       bcs L355D           ; Line > line to search, found
+@           bcs CL_YRET         ; Line > line to search, found
             ldy #$02            ; Go to next line
             lda (L00DA),Y
             adc L00DA
             sta L00DA
-            bcc L354A
+            bcc @+
             inc L00DB
-L354A       dey
+@           dey
             lda (L00DA),Y
-            bmi L3560           ; Not a program line
+            bmi CL_NRET         ; Not a program line
             clc                 ; Increment new line number
             lda FR1
             adc MVLNG
             sta FR1
             lda FR1+1
             adc MVLNG+1
-            jmp L352B           ; Loop
+            jmp CL_LOOP         ; Loop
 
-L355D       clc
-            beq L3561
-L3560       sec
-L3561       lda FR1             ; Return new line number
+CL_YRET     clc
+            beq CL_RET
+CL_NRET     sec
+CL_RET      lda FR1             ; Return new line number
             ldy FR1+1
             rts
+        .endp
 
             ; Skip tokens until terminator
 SKIPTOK     inc STINDEX

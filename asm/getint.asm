@@ -15,14 +15,14 @@ GETPINT     jsr GETINT
             bpl GSTRAD.RET
             lda #$07
             jmp SERROR
-        ; Get 3 integers
+        ; Get 3 integers, return first in MVFA, second in MVTA
 GET3INT     jsr GETINT
-            sta L0099
-            sty L009A
-        ; Get 2 integers
+            sta MVFA
+            sty MVFA+1
+        ; Get 2 integers, return first in MVTA
 GET2INT     jsr GETINT
-            sta L009B
-            sty L009C
+            sta MVTA
+            sty MVTA+1
         ; Ger Integer Expression
 GETINT      jsr EXEXPR
         ; "GTINTO" in Atari BASIC

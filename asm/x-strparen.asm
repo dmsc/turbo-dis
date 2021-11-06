@@ -24,10 +24,10 @@ XSLP2       jsr POPINT_NZ
             sbc #0
             sta ZTEMP1+1
             jsr X_POPVAL
-            lda L00B1
+            lda ADFLAG
             bpl XSLP3
             ora COMCNT
-            sta L00B1
+            sta ADFLAG
             ldy FR0+5
             lda FR0+4
             jmp XSLP4
@@ -63,7 +63,7 @@ XSLP7       jsr GSTRAD
             lda FR0+1
             adc ZTEMP1+1
             sta FR0+1
-            bit L00B1
+            bit ADFLAG
             bpl XSLP8
 RTS_0B      rts
 
