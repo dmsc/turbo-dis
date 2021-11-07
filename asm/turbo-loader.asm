@@ -92,7 +92,9 @@ LOAD_MSG    .byte $7d, CR
 .endif
             .byte $7f, ' (c) 1985 Frank Ostrowski', CR
 .if .def tb_fixes
-            .byte '  Fixes and relocatable by DMSC 2021', CR
+            .byte CR
+            .byte '   Fixes and relocatable by DMSC', CR
+            .byte $7F, $7F, '2021.11.06'
 .endif
             .byte CR
 END_LOAD_MSG
