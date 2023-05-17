@@ -18,22 +18,33 @@ CHKFAIL     sec
 GET_HEXDIG .proc
             ldy CIX
             lda (INBUFF),Y
+.if .def tb_fixes
+            eor #'0'            ; Use EOR, does not need the SEC
+            cmp #10
+            bcc HEXDIGOK
+            ora #$20            ; Allow lower-case characters in "DEC" function.
+            sbc #'A'^'0'        ; Bring A..F to 0..6
+            cmp #6
+            bcs CHKFAIL
+            adc #10
+.else
             sec
             sbc #'0'
-            bcc CHKFAIL
+            bcc CHKFAIL ; Not really needed.
             cmp #10
             bcc HEXDIGOK
             cmp #'A'-'0'
             bcc CHKFAIL
-            sbc #7
+            sbc #'A'-'0' - 10
             cmp #$10
             bcs CHKFAIL
+.endif
 HEXDIGOK
             ldy #$04
-LEA81       asl FR0
+@           asl FR0
             rol FR0+1
             dey
-            bne LEA81
+            bne @-
             ora FR0
             sta FR0
             inc CIX

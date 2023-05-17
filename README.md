@@ -101,3 +101,5 @@ versions:
    Note that both values are not exact, the real values are 49.86 and 59.92
    jiffies per second in PAL and NTSC respectively, but for the intended usage
    the given values are close enough.
+
+ - The DEC() function accepts lower-case hexadecimal digits.

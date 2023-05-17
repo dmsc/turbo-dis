@@ -16,8 +16,8 @@ X_DEC   .proc
             sty CIX
             sty FR0
             sty FR0+1
-LD9CD       jsr GET_HEXDIG
-            bcc LD9CD
+@           jsr GET_HEXDIG
+            bcc @-
             jsr RSTSEOL
             jmp X_RET_INT
         .endp
