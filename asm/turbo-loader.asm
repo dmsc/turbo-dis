@@ -94,7 +94,7 @@ LOAD_MSG    .byte $7d, CR
 .if .def tb_fixes
             .byte CR
             .byte '   Fixes and relocatable by DMSC', CR
-            .byte $7F, $7F, '2021.11.06'
+            .byte $7F, $7F, '2023-05-16'
 .endif
             .byte CR
 END_LOAD_MSG
