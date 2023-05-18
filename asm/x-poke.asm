@@ -16,6 +16,10 @@ X_POKE      jsr GET2INT
             bne ERR_3C
             inc PORTB
 C_POKE      sta (MVTA),Y
+
+.if .def tb_lowmem
+DISROM                  ; In "lowmem" version, use this as DISROM
+.endif
             lda PORTB
             and #$FC
             ora #$02

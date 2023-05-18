@@ -77,8 +77,8 @@ TB_SEGMENT_3
             icl "asm/stmttab.asm"
             icl "asm/dirspecs.asm"
             icl "asm/pdum.asm"
-            icl "asm/disrom.asm"
             icl "asm/reset-v.asm"
+            icl "asm/ciov.asm"
             icl "asm/irq-nmi.asm"
 
         .endif
@@ -90,7 +90,9 @@ TB_SEGMENT_3
             org ((* - $3A + $FF) & $FF00) + $3A
 TB_SEGMENT_4
             icl "asm/opetab.asm"
+        .if .not .def tb_lowmem
             icl "asm/ciov.asm"
+        .endif
             icl "asm/nmi-end.asm"
 
         .if .not .def tb_lowmem
