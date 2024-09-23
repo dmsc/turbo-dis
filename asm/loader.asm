@@ -53,10 +53,11 @@ L600A       stx JSR_GETKEY+1
             lda #$00
             sta BOOT
 .endif
+            ; Store original DOSINI
             lda DOSINI
             ldy DOSINI+1
-            sta JMPDOS+1
-            sty JMPDOS+2
+            sta INIDOS+1
+            sty INIDOS+2
             lda #<RESET_V
             ldy #>RESET_V
             sta DOSINI

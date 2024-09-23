@@ -22,7 +22,8 @@ RESET_V
             lda #$FF
             sta PORTB
 .endif
-JMPDOS      jsr $0000
+            ; Calls DOSINI on reset
+INIDOS      jsr $0000
             lda #$FE
             sta PORTB
 .if .not .def tb_fixes

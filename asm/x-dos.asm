@@ -12,8 +12,8 @@
 
 X_DOS       jsr CLSALL
             inc PORTB
-            lda JMPDOS+1
-            ldy JMPDOS+2
+            lda INIDOS+1
+            ldy INIDOS+2
             sta DOSINI
             sty DOSINI+1
             jmp (DOSVEC)
