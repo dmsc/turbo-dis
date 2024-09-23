@@ -10,7 +10,7 @@
 ; and should be public-domain by now.
 ;
 
-        ; Cold-Start
+; Cold-Start
 COLDSTART   ldx #$FF
             txs
             cld
@@ -25,6 +25,8 @@ SNX2        jsr SETDZ
             beq SNX3
             jsr RSTSEOL
 SNX3        jsr PREADY
+
+; Fall trough SYN_START
 
 
 ; vi:syntax=mads

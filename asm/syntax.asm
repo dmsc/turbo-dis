@@ -12,20 +12,7 @@
 
 ; Entering and parsing BASIC lines
 
-COLDSTART   ldx #$FF
-            txs
-            cld
-            lda LOADFLG
-            beq WARMSTART
-
-X_NEW       jsr INIT_MEM
-WARMSTART   jsr RUNINIT
-SNX1        jsr CLSALL
-SNX2        jsr SETDZ
-            lda MEOLFLG
-            beq SNX3
-            jsr RSTSEOL
-SNX3        jsr PREADY
+            icl "asm/x-new.asm"
 
 ; Start parsing code
 SYN_START   jsr UNFIX_RSTK
